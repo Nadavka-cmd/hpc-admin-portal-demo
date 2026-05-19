@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>var BASE = {{ root_path | tojson }};</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HPC Portal — Jobs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f4f6f9; --surface:#fff; --border:#e2e8f0; --text:#0f172a; --muted:#64748b;
+      --accent:#2563eb; --accent-lt:#eff6ff;
+      --running:#10b981; --running-bg:#ecfdf5;
+      --pending:#f59e0b; --pending-bg:#fffbeb;
+      --failed:#ef4444;  --failed-bg:#fef2f2;
+      --unknown:#94a3b8; --unknown-bg:#f8fafc;
+      --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .nav-brand { display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px; text-decoration:none; color:var(--text); }
+    .nav-brand .logo { width:28px; height:28px; background:var(--accent); border-radius:7px; display:flex; align-items:center; justify-content:center; }
+    .nav-brand .logo svg { width:16px; height:16px; }
+    .nav-links { display:flex; gap:4px; list-style:none; }
+    .nav-links a { text-decoration:none; color:var(--muted); font-size:14px; font-weight:500; padding:6px 12px; border-radius:7px; transition:all .15s; }
+    .nav-links a:hover { background:var(--bg); color:var(--text); }
+    .nav-links a.active { background:var(--accent-lt); color:var(--accent); }
+    .nav-right { display:flex; align-items:center; gap:12px; }
+    .refresh-btn { background:none; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:13px; font-family:inherit; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
+    .refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .refresh-btn.spinning svg { animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .cluster-badge { font-size:12px; font-family:'Consolas','Monaco',monospace; background:var(--accent-lt); color:var(--accent); padding:4px 10px; border-radius:20px; font-weight:500; }
+    #last-updated { font-size:12px; color:var(--muted); font-family:'Consolas','Monaco',monospace; }
+    main { max-width:1400px; margin:0 auto; padding:32px; }
+    .page-title { font-size:22px; font-weight:600; letter-spacing:-.3px; margin-bottom:4px; }
+    .page-sub   { font-size:13px; color:var(--muted); margin-bottom:28px; }
+    .summary-strip { display:flex; gap:12px; margin-bottom:28px; flex-wrap:wrap; }
+    .stat-pill { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 20px; display:flex; align-items:center; gap:10px; flex:1; min-width:130px; }
+    .stat-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .stat-pill .count { font-size:22px; font-weight:600; font-family:'Consolas','Monaco',monospace; line-height:1; }
+    .stat-pill .label { font-size:12px; color:var(--muted); margin-top:2px; }
+    .toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+    .search-wrap { position:relative; flex:1; min-width:200px; max-width:340px; }
+    .search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+    .search-input { width:100%; padding:7px 12px 7px 32px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; }
+    .search-input:focus { border-color:var(--accent); }
+    .filter-btn { background:var(--surface); border:1px solid var(--border); border-radius:7px; padding:5px 12px; font-size:13px; font-family:inherit; color:var(--muted); cursor:pointer; transition:all .15s; }
+    .filter-btn:hover  { border-color:var(--accent); color:var(--accent); }
+    .filter-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .job-count { font-size:12px; color:var(--muted); margin-left:auto; }
+    .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    thead { background:var(--bg); border-bottom:1px solid var(--border); }
+    th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); cursor:pointer; user-select:none; white-space:nowrap; }
+    th:hover { color:var(--text); }
+    th.sorted { color:var(--accent); }
+    th .sort-icon { margin-left:4px; opacity:.4; }
+    th.sorted .sort-icon { opacity:1; }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg); }
+    td { padding:10px 14px; vertical-align:middle; }
+    .job-id { font-family:'Consolas','Monaco',monospace; font-weight:500; font-size:13px; color:var(--accent); }
+    .job-name { font-weight:500; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mono { font-family:'Consolas','Monaco',monospace; font-size:12px; }
+    .job-state { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+    .job-state .dot { width:6px; height:6px; border-radius:50%; }
+    .state-RUNNING { background:var(--running-bg); color:var(--running); }
+    .state-RUNNING .dot { background:var(--running); }
+    .state-PENDING { background:var(--pending-bg); color:var(--pending); }
+    .state-PENDING .dot { background:var(--pending); }
+    .state-FAILED  { background:var(--failed-bg);  color:var(--failed);  }
+    .state-FAILED .dot  { background:var(--failed);  }
+    .state-UNKNOWN { background:var(--unknown-bg); color:var(--unknown); }
+    .state-UNKNOWN .dot { background:var(--unknown); }
+    .gres-badge { display:inline-block; font-size:11px; font-weight:500; padding:2px 8px; border-radius:20px; background:#f5f3ff; color:#7c3aed; font-family:'Consolas','Monaco',monospace; }
+    .gres-none { color:var(--muted); font-size:12px; }
+    .time-cell { font-family:'Consolas','Monaco',monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+    .time-cell.running { color:var(--running); }
+    .reason-cell { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; }
+    .empty-row td { text-align:center; padding:60px 20px; color:var(--muted); }
+    .skeleton { background:linear-gradient(90deg,#f0f4f8 25%,#e2e8f0 50%,#f0f4f8 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; height:12px; display:inline-block; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="/"><div class="logo"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity=".6"/><rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity=".6"/><rect x="9" y="9" width="5" height="5" rx="1" fill="white" opacity=".3"/></svg></div>HPC Portal</a>
+  <ul class="nav-links">
+    <li><a href="/">Nodes</a></li>
+    <li><a href="{{ root_path }}/jobs" class="active">Jobs</a></li>
+    <li><a href="{{ root_path }}/storage">Storage</a></li>
+    <li><a href="{{ root_path }}/actions">Actions</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="cluster-badge">demo-hpc</span>
+    <span id="last-updated">—</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadJobs()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-title">Jobs</div>
+  <div class="page-sub">Active and queued jobs across the cluster</div>
+  <div class="summary-strip" id="summary-strip"></div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="search-input" type="text" placeholder="Search user, job name, node…" oninput="applyFilters()">
+    </div>
+    <button class="filter-btn active" data-filter="ALL"     onclick="setFilter('ALL',this)">All</button>
+    <button class="filter-btn"        data-filter="RUNNING" onclick="setFilter('RUNNING',this)">Running</button>
+    <button class="filter-btn"        data-filter="PENDING" onclick="setFilter('PENDING',this)">Pending</button>
+    <span class="job-count" id="job-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('job_id')"   class="sorted" id="th-job_id">Job ID <span class="sort-icon">↓</span></th>
+          <th onclick="sortBy('user')"     id="th-user">User <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('account')"  id="th-account">Account <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('name')"     id="th-name">Name <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('state')"    id="th-state">State <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('time_run')" id="th-time_run">Time Running <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('time_limit')" id="th-time_limit">Time Limit <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('gres')"     id="th-gres">GPUs <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('nodes')"    id="th-nodes">Node(s) <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('reason')"   id="th-reason">Reason <span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="jobs-tbody">
+        <tr><td colspan="10"><div class="skeleton" style="width:60%"></div></td></tr>
+        <tr><td colspan="10"><div class="skeleton" style="width:40%"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  let jobsData=[], currentFilter='ALL', sortKey='job_id', sortDir='desc';
+
+  function stateKey(s){
+    const u=s.toUpperCase();
+    if(u.includes('RUNNING')) return 'RUNNING';
+    if(u.includes('PENDING')) return 'PENDING';
+    if(u.includes('FAILED'))  return 'FAILED';
+    return 'UNKNOWN';
+  }
+
+  function formatGres(g){
+    if(!g||g==='N/A'||g==='(null)'||g==='') return null;
+    // e.g. "gpu:nvidia_rtx_a5000:2" or "gpu:2" -> clean it up
+    return g.replace(/^gpu:/i,'').replace(/_/g,' ');
+  }
+
+  function renderSummary(jobs){
+    const c={total:jobs.length,RUNNING:0,PENDING:0,FAILED:0};
+    jobs.forEach(j=>{const s=stateKey(j.state);if(c[s]!==undefined)c[s]++;});
+    const items=[
+      {label:'Total Jobs',key:'total',  color:'var(--accent)' },
+      {label:'Running',   key:'RUNNING',color:'var(--running)'},
+      {label:'Pending',   key:'PENDING',color:'var(--pending)'},
+      {label:'Failed',    key:'FAILED', color:'var(--failed)' },
+    ];
+    document.getElementById('summary-strip').innerHTML=items.map(i=>`
+      <div class="stat-pill">
+        <div class="stat-dot" style="background:${i.color}"></div>
+        <div><div class="count">${c[i.key]}</div><div class="label">${i.label}</div></div>
+      </div>`).join('');
+  }
+
+  function applyFilters(){
+    const q=document.getElementById('search-input').value.toLowerCase();
+    let rows=jobsData.filter(j=>{
+      const mf=currentFilter==='ALL'||stateKey(j.state)===currentFilter;
+      const ms=!q||[j.job_id,j.user,j.account,j.name,j.nodes,j.reason,j.gres].some(v=>(v||'').toLowerCase().includes(q));
+      return mf&&ms;
+    });
+    rows.sort((a,b)=>{
+      let av=a[sortKey]||'', bv=b[sortKey]||'';
+      if(sortKey==='job_id'){av=+av;bv=+bv;}
+      if(av<bv) return sortDir==='asc'?-1:1;
+      if(av>bv) return sortDir==='asc'?1:-1;
+      return 0;
+    });
+    document.getElementById('job-count').textContent=`${rows.length} job${rows.length!==1?'s':''}`;
+    if(!rows.length){
+      document.getElementById('jobs-tbody').innerHTML=`<tr class="empty-row"><td colspan="10"><div>📋</div><div>No jobs found</div></td></tr>`;
+      return;
+    }
+    document.getElementById('jobs-tbody').innerHTML=rows.map(j=>{
+      const sk=stateKey(j.state);
+      const gres=formatGres(j.gres);
+      const gresHtml=gres?`<span class="gres-badge">${gres}</span>`:`<span class="gres-none">—</span>`;
+      const isRunning=sk==='RUNNING';
+      return `<tr>
+        <td><span class="job-id">${j.job_id}</span></td>
+        <td><span class="mono">${j.user}</span></td>
+        <td><span class="mono">${j.account||'—'}</span></td>
+        <td><span class="job-name" title="${j.name}">${j.name}</span></td>
+        <td><span class="job-state state-${sk}"><span class="dot"></span>${j.state}</span></td>
+        <td><span class="time-cell ${isRunning?'running':''}">${j.time_run||'—'}</span></td>
+        <td><span class="time-cell">${j.time_limit||'—'}</span></td>
+        <td>${gresHtml}</td>
+        <td><span class="mono">${j.nodes||'—'}</span></td>
+        <td><span class="reason-cell" title="${j.reason}">${j.reason||'—'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setFilter(f,btn){
+    currentFilter=f;
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+  }
+
+  function sortBy(key){
+    if(sortKey===key) sortDir=sortDir==='asc'?'desc':'asc';
+    else{sortKey=key;sortDir='desc';}
+    document.querySelectorAll('th').forEach(th=>{th.classList.remove('sorted');th.querySelector('.sort-icon').textContent='↕';});
+    const th=document.getElementById(`th-${key}`);
+    th.classList.add('sorted');
+    th.querySelector('.sort-icon').textContent=sortDir==='asc'?'↑':'↓';
+    applyFilters();
+  }
+
+  async function loadJobs(){
+    const btn=document.getElementById('refresh-btn'); btn.classList.add('spinning');
+    try{
+      const data=await fetch(BASE+'/api/slurm/jobs').then(r=>r.json());
+      jobsData=data.jobs||[];
+      renderSummary(jobsData);
+      applyFilters();
+      document.getElementById('last-updated').textContent=
+        `Updated ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    }catch(e){
+      document.getElementById('jobs-tbody').innerHTML=`<tr class="empty-row"><td colspan="9">⚠️ Failed: ${e.message}</td></tr>`;
+    }finally{btn.classList.remove('spinning');}
+  }
+
+  loadJobs();
+  setInterval(loadJobs,30000);
+</script>
+</body>
+</html>

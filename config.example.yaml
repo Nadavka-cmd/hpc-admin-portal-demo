@@ -1,0 +1,22 @@
+site:
+  name: "Demo HPC Portal"
+  cluster_badge: "demo-hpc"
+
+awx:
+  url: "http://awx.example.local"
+  token: "REPLACE_ME"
+
+ldap:
+  uri: "ldap://ad.example.local"
+  base_dn: "DC=example,DC=local"
+  hpc_ou: "OU=HPC,DC=example,DC=local"
+
+storage:
+  home_base: "/demo/home"
+  projects_base: "/demo/projects"
+
+prometheus:
+  url: "http://prometheus.example.local:9090"
+
+slurm:
+  bin_path: "/usr/bin"

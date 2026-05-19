@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Wizard — demo-hpc</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+      --border: #2e3350; --accent: #4f8ef7; --accent2: #6c63ff;
+      --green: #3ecf8e; --red: #f87171; --yellow: #fbbf24;
+      --text: #e2e8f0; --muted: #8892a4; --radius: 6px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+    /* ── nav ── */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; gap: 0; height: 46px; }
+    nav .brand { font-size: 13px; font-weight: 600; color: var(--muted); margin-right: 24px; letter-spacing: .5px; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 0 14px; height: 46px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: color .15s; }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+    nav .spacer { flex: 1; }
+    nav .hostname { font-size: 12px; color: var(--muted); font-family: monospace; }
+
+    /* ── layout ── */
+    .page { max-width: 860px; margin: 0 auto; padding: 28px 20px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+
+    /* ── mode switcher ── */
+    .mode-bar { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .mode-btn {
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 18px; border-radius: var(--radius); cursor: pointer; font-size: 13px;
+      font-weight: 500; transition: all .15s;
+    }
+    .mode-btn:hover { border-color: var(--accent); color: var(--text); }
+    .mode-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .mode-btn.offboard.active { background: var(--red); border-color: var(--red); }
+
+    /* ── wizard card ── */
+    .wizard { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+
+    /* ── step progress ── */
+    .steps-bar { display: flex; padding: 20px 24px 0; gap: 0; }
+    .step-item { display: flex; align-items: center; flex: 1; }
+    .step-item:last-child { flex: none; }
+    .step-dot {
+      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0;
+      border: 2px solid var(--border); background: var(--surface); color: var(--muted);
+      transition: all .2s;
+    }
+    .step-dot.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,.12); }
+    .step-dot.done { border-color: var(--green); background: var(--green); color: #000; }
+    .step-label { font-size: 11px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+    .step-label.active { color: var(--accent); }
+    .step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 8px; min-width: 20px; }
+    .step-connector.done { background: var(--green); }
+
+    /* ── panels ── */
+    .wizard-body { padding: 28px 24px 24px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── form controls ── */
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 12px; border-radius: var(--radius); font-size: 14px; font-family: var(--font);
+      outline: none; transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .field input[readonly] { opacity: .6; cursor: default; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── checkbox group ── */
+    .check-group { display: flex; flex-direction: column; gap: 6px; }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); cursor: pointer; transition: border-color .1s; }
+    .check-item:hover { border-color: var(--accent); }
+    .check-item input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+    .check-item label { cursor: pointer; font-size: 13px; color: var(--text); }
+    .check-item .badge { margin-left: auto; font-size: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 1px 6px; color: var(--muted); font-family: monospace; }
+
+    /* ── radio pills ── */
+    .radio-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .radio-pill { position: relative; }
+    .radio-pill input { position: absolute; opacity: 0; width: 0; }
+    .radio-pill label {
+      display: block; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted); font-size: 12px; cursor: pointer; transition: all .1s;
+    }
+    .radio-pill input:checked + label { background: rgba(79,142,247,.15); border-color: var(--accent); color: var(--accent); }
+
+    /* ── review table ── */
+    .review-table { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+    .review-row { display: grid; grid-template-columns: 160px 1fr; border-bottom: 1px solid var(--border); }
+    .review-row:last-child { border-bottom: none; }
+    .review-key { background: var(--surface2); padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .review-val { padding: 10px 14px; font-size: 13px; font-family: monospace; color: var(--text); word-break: break-all; }
+
+    /* ── results ── */
+    .result-list { display: flex; flex-direction: column; gap: 6px; }
+    .result-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); }
+    .result-item .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .result-item.ok { border-color: rgba(62,207,142,.25); }
+    .result-item.fail { border-color: rgba(248,113,113,.25); }
+    .result-item .rlabel { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; width: 200px; flex-shrink: 0; }
+    .result-item .rmsg { font-size: 13px; color: var(--text); }
+    .result-banner { padding: 14px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px; margin-bottom: 16px; }
+    .result-banner.ok { background: rgba(62,207,142,.12); border: 1px solid rgba(62,207,142,.3); color: var(--green); }
+    .result-banner.fail { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--red); }
+
+    /* ── AD auth inline ── */
+    .ad-auth-block { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.25); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
+    .ad-auth-block .ad-title { font-size: 12px; font-weight: 600; color: var(--yellow); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .4px; }
+    .ad-auth-row { display: flex; gap: 8px; align-items: center; }
+    .ad-auth-row input { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: var(--radius); font-size: 13px; outline: none; flex: 1; }
+    .ad-auth-row input:focus { border-color: var(--yellow); }
+    .ad-status { font-size: 12px; margin-top: 8px; }
+    .ad-status.ok { color: var(--green); }
+    .ad-status.fail { color: var(--red); }
+
+    /* ── lookup strip ── */
+    .lookup-strip { display: flex; gap: 8px; margin-bottom: 20px; }
+    .lookup-strip input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: var(--radius); font-size: 14px; outline: none; }
+    .lookup-strip input:focus { border-color: var(--accent); }
+    .lookup-result { background: var(--surface2); border: 1px solid rgba(62,207,142,.2); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; margin-bottom: 16px; color: var(--muted); }
+    .lookup-result b { color: var(--text); }
+
+    /* ── buttons ── */
+    .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn {
+      padding: 8px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent; transition: all .15s; font-family: var(--font);
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3a7ef0; }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { filter: brightness(1.1); }
+    .btn-secondary { background: var(--surface2); border-color: var(--border); color: var(--text); }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+    /* ── spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+
+    /* ── section header ── */
+    .section-hdr { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    /* ── warning box ── */
+    .warn-box { background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.25); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #fca5a5; }
+
+    .disable-only-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); margin-bottom: 16px; }
+    .disable-only-row input { accent-color: var(--yellow); width: 15px; height: 15px; }
+    .disable-only-row label { font-size: 13px; cursor: pointer; }
+    .disable-only-row .hint { font-size: 11px; color: var(--muted); margin-left: auto; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">demo-hpc</span>
+  <a href="/slurm">Slurm Admin</a>
+  <a href="/storage">Storage</a>
+  <a href="/actions">Automation</a>
+  <a href="/onboarding" class="active">Onboarding</a>
+  <div class="spacer"></div>
+  <span class="hostname">demo-master</span>
+</nav>
+
+<div class="page">
+  <h1>User & Group Wizard</h1>
+  <p class="subtitle">Onboard or offboard a single user or an entire AD group across AD, Slurm, and ZFS in one flow.</p>
+
+  <!-- Mode selector -->
+  <div class="mode-bar">
+    <button class="mode-btn active"   onclick="setMode('onboard-user')">＋ Onboard User</button>
+    <button class="mode-btn"          onclick="setMode('onboard-group')">＋ Onboard Group</button>
+    <button class="mode-btn offboard" onclick="setMode('offboard-user')">✕ Offboard User</button>
+    <button class="mode-btn offboard" onclick="setMode('offboard-group')">✕ Offboard Group</button>
+  </div>
+
+  <!-- Wizard card -->
+  <div class="wizard">
+    <!-- Progress bar (rendered by JS) -->
+    <div class="steps-bar" id="stepsBar"></div>
+
+    <div class="wizard-body">
+
+      <!-- ══════════════════════ ONBOARD USER ══════════════════════ -->
+      <div id="wizard-onboard-user" class="wizard-form">
+
+        <!-- Step 1: Identity -->
+        <div class="panel active" data-step="0">
+          <div class="section-hdr">User Identity</div>
+
+          <div id="ou-ad-auth" class="ad-auth-block" style="display:none">
+            <div class="ad-title">⚠ AD Authentication Required for Group Membership</div>
+            <div class="ad-auth-row">
+              <input type="text" id="ou-ad-user" placeholder="admin@ad.example.local" />
+              <input type="password" id="ou-ad-pass" placeholder="Password" />
+              <button class="btn btn-secondary" onclick="adAuth('ou')">Authenticate</button>
+            </div>
+            <div class="ad-status" id="ou-ad-status"></div>
+          </div>
+
+          <div class="field">
+            <label>Username (sAMAccountName)</label>
+            <input type="text" id="ou-username" placeholder="jsmith" autocomplete="off" oninput="clearResults('ou')" />
+            <div class="hint">Must already exist in AD. This will be their Linux/HPC username.</div>
+          </div>
+        </div>
+
+        <!-- Step 2: Groups & Slurm -->
+        <div class="panel" data-step="1">
+          <div class="section-hdr">AD Groups &amp; Slurm Account</div>
+          <div class="field">
+            <label>AD Groups</label>
+            <div class="check-group" id="ou-ad-groups"></div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>Slurm Account</label>
+              <select id="ou-slurm-account" onchange="ouAccountChanged()"></select>
+            </div>
+            <div class="field">
+              <label>Default QoS</label>
+              <select id="ou-defqos"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Extra QoS (optional)</label>
+            <div class="check-group" id="ou-extra-qos"></div>
+          </div>
+        </div>
+
+        <!-- Step 3: Storage -->
+        <div class="panel" data-step="2">
+          <div class="section-hdr">Storage Quotas</div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" id="ou-set-quota" checked onchange="document.getElementById('ou-quota-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)" />
+              Set ZFS quotas for this user
+            </label>
+          </div>
+          <div id="ou-quota-fields">
+            <div class="row2">
+              <div class="field">
+                <label>Home quota (storage-a)</label>
+                <div class="radio-pills" id="ou-home-quota"></div>
+              </div>
+              <div class="field">
+                <label>Projects quota (storage-b)</label>
+                <div class="radio-pills" id="ou-proj-quota"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Review -->
+        <div class="panel" data-step="3">
+          <div class="section-hdr">Review &amp; Confirm</div>
+          <div class="review-table" id="ou-review"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:0">
+            <button class="btn btn-primary" id="ou-run-btn" onclick="runOnboardUser()">Run Onboarding</button>
+          </div>
+        </div>
+
+        <!-- Step 5: Results -->
+        <div class="panel" data-step="4">
+          <div id="ou-result-banner" class="result-banner"></div>
+          <div class="result-list" id="ou-result-list"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:20px">
+            <button class="btn btn-secondary" onclick="resetWizard()">Start Over</button>
+          </div>
+        </div>
+
+        <div class="btn-row" id="ou-nav"></div>
+      </div>
+
+      <!-- ══════════════════════ ONBOARD GROUP ══════════════════════ -->
+      <div id="wizard-onboard-group" class="wizard-form" style="display:none">
+
+        <div class="panel active" data-step="0">
+          <div class="section-hdr">AD Group Source</div>
+          <div class="field">
+            <label>AD Group</label>
+            <select id="og-ad-group" onchange="ogGroupChanged()"></select>
+            <div class="hint">All SSSD-visible members of this group will be processed.</div>
+          </div>
+          <div id="og-members-preview" style="display:none" class="lookup-result"></div>
+        </div>
+
+        <div class="panel" data-step="1">
+          <div class="section-hdr">Slurm Account</div>
+          <div class="row2">
+            <div class="field">
+              <label>Slurm Account</label>
+              <select id="og-slurm-account" onchange="ogAccountChanged()"></select>
+            </div>
+            <div class="field">
+              <label>Default QoS</label>
+              <select id="og-defqos"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Extra QoS (optional)</label>
+            <div class="check-group" id="og-extra-qos"></div>
+          </div>
+        </div>
+
+        <div class="panel" data-step="2">
+          <div class="section-hdr">Storage Quotas (per user)</div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" id="og-set-quota" onchange="document.getElementById('og-quota-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)" />
+              Set per-user ZFS quotas (slow for large groups)
+            </label>
+          </div>
+          <div id="og-quota-fields" style="display:none">
+            <div class="row2">
+              <div class="field">
+                <label>Home quota (storage-a)</label>
+                <div class="radio-pills" id="og-home-quota"></div>
+              </div>
+              <div class="field">
+                <label>Projects quota (storage-b)</label>
+                <div class="radio-pills" id="og-proj-quota"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-step="3">
+          <div class="section-hdr">Review &amp; Confirm</div>
+          <div class="review-table" id="og-review"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:0">
+            <button class="btn btn-primary" id="og-run-btn" onclick="runOnboardGroup()">Run Group Onboarding</button>
+          </div>
+        </div>
+
+        <div class="panel" data-step="4">
+          <div id="og-result-banner" class="result-banner"></div>
+          <div class="result-list" id="og-result-list"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:20px">
+            <button class="btn btn-secondary" onclick="resetWizard()">Start Over</button>
+          </div>
+        </div>
+
+        <div class="btn-row" id="og-nav"></div>
+      </div>
+
+      <!-- ══════════════════════ OFFBOARD USER ══════════════════════ -->
+      <div id="wizard-offboard-user" class="wizard-form" style="display:none">
+
+        <div class="panel active" data-step="0">
+          <div class="section-hdr">Look Up User</div>
+
+          <div id="fu-ad-auth" class="ad-auth-block" style="display:none">
+            <div class="ad-title">⚠ AD Authentication Required to Remove Group Memberships</div>
+            <div class="ad-auth-row">
+              <input type="text" id="fu-ad-user" placeholder="admin@ad.example.local" />
+              <input type="password" id="fu-ad-pass" placeholder="Password" />
+              <button class="btn btn-secondary" onclick="adAuth('fu')">Authenticate</button>
+            </div>
+            <div class="ad-status" id="fu-ad-status"></div>
+          </div>
+
+          <div class="lookup-strip">
+            <input type="text" id="fu-username" placeholder="username" autocomplete="off" onkeydown="if(event.key==='Enter')lookupUser()" />
+            <button class="btn btn-secondary" onclick="lookupUser()">Look Up</button>
+          </div>
+          <div id="fu-lookup-result" style="display:none" class="lookup-result"></div>
+        </div>
+
+        <div class="panel" data-step="1">
+          <div class="section-hdr">What to Remove</div>
+          <div class="warn-box">⚠ These actions are irreversible. Review carefully before proceeding.</div>
+
+          <div class="disable-only-row">
+            <input type="checkbox" id="fu-disable-only" />
+            <label for="fu-disable-only"><b>Soft disable only</b> — block job submissions (MaxSubmitJobs=0) instead of removing Slurm accounts</label>
+            <span class="hint">Safe for sabbaticals</span>
+          </div>
+
+          <div class="field">
+            <label>AD Groups to Remove From</label>
+            <div class="check-group" id="fu-ad-groups"></div>
+          </div>
+          <div class="field" id="fu-slurm-section">
+            <label>Slurm Accounts to Remove From</label>
+            <div class="check-group" id="fu-slurm-accounts"></div>
+          </div>
+        </div>
+
+        <div class="panel" data-step="2">
+          <div class="section-hdr">Review &amp; Confirm</div>
+          <div class="review-table" id="fu-review"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:0">
+            <button class="btn btn-danger" id="fu-run-btn" onclick="runOffboardUser()">Confirm Offboarding</button>
+          </div>
+        </div>
+
+        <div class="panel" data-step="3">
+          <div id="fu-result-banner" class="result-banner"></div>
+          <div class="result-list" id="fu-result-list"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:20px">
+            <button class="btn btn-secondary" onclick="resetWizard()">Start Over</button>
+          </div>
+        </div>
+
+        <div class="btn-row" id="fu-nav"></div>
+      </div>
+
+      <!-- ══════════════════════ OFFBOARD GROUP ══════════════════════ -->
+      <div id="wizard-offboard-group" class="wizard-form" style="display:none">
+
+        <div class="panel active" data-step="0">
+          <div class="section-hdr">Select Group &amp; Slurm Account</div>
+          <div class="warn-box">⚠ This will remove ALL members of the selected AD group from the Slurm account.</div>
+          <div class="field">
+            <label>AD Group (source of members)</label>
+            <select id="fg-ad-group"></select>
+          </div>
+          <div class="field">
+            <label>Slurm Account to Remove From</label>
+            <select id="fg-slurm-account"></select>
+          </div>
+        </div>
+
+        <div class="panel" data-step="1">
+          <div class="section-hdr">Review &amp; Confirm</div>
+          <div class="review-table" id="fg-review"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:0">
+            <button class="btn btn-danger" id="fg-run-btn" onclick="runOffboardGroup()">Confirm Group Offboarding</button>
+          </div>
+        </div>
+
+        <div class="panel" data-step="2">
+          <div id="fg-result-banner" class="result-banner"></div>
+          <div class="result-list" id="fg-result-list"></div>
+          <div class="btn-row" style="justify-content:flex-start;margin-top:20px">
+            <button class="btn btn-secondary" onclick="resetWizard()">Start Over</button>
+          </div>
+        </div>
+
+        <div class="btn-row" id="fg-nav"></div>
+      </div>
+
+    </div><!-- /wizard-body -->
+  </div><!-- /wizard -->
+</div><!-- /page -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let meta = {};
+let currentMode = 'onboard-user';
+let adAuthenticated = false;
+
+const MODES = {
+  'onboard-user':   { steps: ['Identity','Groups & Slurm','Storage','Review','Done'],   prefix: 'ou', offboard: false },
+  'onboard-group':  { steps: ['Select Group','Slurm','Storage','Review','Done'],         prefix: 'og', offboard: false },
+  'offboard-user':  { steps: ['Look Up','Configure','Review','Done'],                    prefix: 'fu', offboard: true  },
+  'offboard-group': { steps: ['Configure','Review','Done'],                              prefix: 'fg', offboard: true  },
+};
+
+function currentConf() { return MODES[currentMode]; }
+function currentStep() {
+  const panels = activePanels();
+  for (let i = 0; i < panels.length; i++) {
+    if (panels[i].classList.contains('active')) return i;
+  }
+  return 0;
+}
+function activePanels() {
+  return [...document.querySelectorAll(`#wizard-${currentMode} .panel`)];
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/api/onboarding/meta');
+    meta = await r.json();
+
+    // Check AD session
+    const ar = await fetch('/api/ad/session');
+    const as_ = await ar.json();
+    adAuthenticated = as_.authenticated;
+
+    populateAllDropdowns();
+    setMode('onboard-user');
+  } catch(e) {
+    console.error('Init failed', e);
+  }
+}
+
+function populateAllDropdowns() {
+  // Onboard user — AD groups
+  const ouAdGroups = document.getElementById('ou-ad-groups');
+  ouAdGroups.innerHTML = meta.ad_groups.map(g => `
+    <div class="check-item">
+      <input type="checkbox" id="oug-${g}" name="ou-adg" value="${g}" onchange="ouGroupChanged()">
+      <label for="oug-${g}">${g}</label>
+    </div>`).join('');
+
+  // Onboard user — Slurm account
+  const ouAcct = document.getElementById('ou-slurm-account');
+  ouAcct.innerHTML = meta.slurm_accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  // Onboard user — QoS options
+  populateQosSelects('ou');
+
+  // Onboard user — quota radio pills
+  populateQuotaPills('ou-home-quota', 'home', 'ou');
+  populateQuotaPills('ou-proj-quota', 'proj', 'ou');
+
+  // Onboard group — AD group dropdown
+  const ogAdGroup = document.getElementById('og-ad-group');
+  ogAdGroup.innerHTML = meta.ad_groups.map(g => `<option value="${g}">${g}</option>`).join('');
+  const ogAcct = document.getElementById('og-slurm-account');
+  ogAcct.innerHTML = meta.slurm_accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+  populateQosSelects('og');
+  populateQuotaPills('og-home-quota', 'home', 'og');
+  populateQuotaPills('og-proj-quota', 'proj', 'og');
+
+  // Offboard group
+  const fgAdGroup = document.getElementById('fg-ad-group');
+  fgAdGroup.innerHTML = meta.ad_groups.map(g => `<option value="${g}">${g}</option>`).join('');
+  const fgAcct = document.getElementById('fg-slurm-account');
+  fgAcct.innerHTML = meta.slurm_accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  // Show AD auth blocks if not authenticated
+  updateAdAuthVisibility();
+}
+
+function updateAdAuthVisibility() {
+  document.getElementById('ou-ad-auth').style.display = adAuthenticated ? 'none' : 'block';
+  const fuAuth = document.getElementById('fu-ad-auth');
+  if (fuAuth) fuAuth.style.display = adAuthenticated ? 'none' : 'block';
+}
+
+function populateQosSelects(prefix) {
+  const allQos = Object.keys(meta.qos_defaults).flatMap(g => {
+    const d = meta.qos_defaults[g];
+    return [d.defqos, ...d.extra_qos];
+  });
+  const uniqueQos = [...new Set(allQos)].sort();
+
+  const defEl = document.getElementById(`${prefix}-defqos`);
+  defEl.innerHTML = uniqueQos.map(q => `<option value="${q}">${q}</option>`).join('');
+
+  const extraEl = document.getElementById(`${prefix}-extra-qos`);
+  extraEl.innerHTML = uniqueQos.map(q => `
+    <div class="check-item">
+      <input type="checkbox" id="${prefix}-xq-${q}" name="${prefix}-xq" value="${q}">
+      <label for="${prefix}-xq-${q}">${q}</label>
+    </div>`).join('');
+}
+
+function populateQuotaPills(elId, type, prefix) {
+  const el = document.getElementById(elId);
+  el.innerHTML = meta.quota_presets.map(v => `
+    <div class="radio-pill">
+      <input type="radio" id="${elId}-${v}" name="${elId}" value="${v}" ${v==='none'?'checked':''}>
+      <label for="${elId}-${v}">${v}</label>
+    </div>`).join('');
+}
+
+// ── Mode switching ────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  // Update buttons
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${mode}'`));
+  });
+  // Show correct wizard
+  document.querySelectorAll('.wizard-form').forEach(f => f.style.display = 'none');
+  document.getElementById(`wizard-${mode}`).style.display = 'block';
+  // Reset to first step
+  goStep(0);
+  renderProgress();
+  renderNav();
+}
+
+function resetWizard() { setMode(currentMode); }
+
+// ── Step navigation ───────────────────────────────────────────────────────
+function goStep(n) {
+  const panels = activePanels();
+  panels.forEach((p, i) => p.classList.toggle('active', i === n));
+  renderProgress();
+  renderNav();
+}
+
+function nextStep() {
+  const n = currentStep();
+  if (validate(n)) goStep(n + 1);
+}
+
+function prevStep() { goStep(currentStep() - 1); }
+
+function validate(step) {
+  if (currentMode === 'onboard-user' && step === 0) {
+    const u = document.getElementById('ou-username').value.trim();
+    if (!u) { alert('Please enter a username.'); return false; }
+  }
+  if (currentMode === 'offboard-user' && step === 0) {
+    const u = document.getElementById('fu-username').value.trim();
+    if (!u) { alert('Please enter a username and look them up first.'); return false; }
+    if (!document.getElementById('fu-lookup-result').style.display === 'none') {
+      // allow through even if not looked up
+    }
+  }
+  if (currentMode === 'onboard-user' && step === 2) buildOuReview();
+  if (currentMode === 'onboard-group' && step === 2) buildOgReview();
+  if (currentMode === 'offboard-user' && step === 1) buildFuReview();
+  if (currentMode === 'offboard-group' && step === 0) buildFgReview();
+  return true;
+}
+
+// ── Progress bar ──────────────────────────────────────────────────────────
+function renderProgress() {
+  const conf = currentConf();
+  const step = currentStep();
+  const bar = document.getElementById('stepsBar');
+  bar.innerHTML = conf.steps.map((label, i) => {
+    const done = i < step;
+    const active = i === step;
+    const dotClass = done ? 'done' : active ? 'active' : '';
+    const lblClass = active ? 'active' : '';
+    const conn = i < conf.steps.length - 1
+      ? `<div class="step-connector${done ? ' done' : ''}"></div>`
+      : '';
+    const icon = done ? '✓' : i + 1;
+    return `
+      <div class="step-item">
+        <div class="step-dot ${dotClass}">${icon}</div>
+        <span class="step-label ${lblClass}">${label}</span>
+        ${conn}
+      </div>`;
+  }).join('');
+}
+
+// ── Nav buttons ───────────────────────────────────────────────────────────
+function renderNav() {
+  const conf = currentConf();
+  const step = currentStep();
+  const last = conf.steps.length - 1;
+  const prefix = conf.prefix;
+  const navEl = document.getElementById(`${prefix}-nav`);
+  if (!navEl) return;
+
+  // On result step — no nav
+  if (step === last) { navEl.innerHTML = ''; return; }
+  // On review step — action button is inside panel, just show Back
+  const isReview = (
+    (currentMode === 'onboard-user'   && step === 3) ||
+    (currentMode === 'onboard-group'  && step === 3) ||
+    (currentMode === 'offboard-user'  && step === 2) ||
+    (currentMode === 'offboard-group' && step === 1)
+  );
+  if (isReview) {
+    navEl.innerHTML = step > 0
+      ? `<button class="btn btn-ghost" onclick="prevStep()">← Back</button>`
+      : '';
+    return;
+  }
+
+  navEl.innerHTML = `
+    ${step > 0 ? '<button class="btn btn-ghost" onclick="prevStep()">← Back</button>' : '<span></span>'}
+    <button class="btn btn-primary" onclick="nextStep()">Next →</button>
+  `;
+}
+
+// ── AD Auth ───────────────────────────────────────────────────────────────
+async function adAuth(prefix) {
+  const user = document.getElementById(`${prefix}-ad-user`).value.trim();
+  const pass = document.getElementById(`${prefix}-ad-pass`).value;
+  const status = document.getElementById(`${prefix}-ad-status`);
+  if (!user || !pass) { status.textContent = 'Enter credentials.'; return; }
+  status.textContent = 'Authenticating…';
+  try {
+    const r = await fetch('/api/ad/auth', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: user, password: pass }) });
+    const d = await r.json();
+    if (d.ok) {
+      adAuthenticated = true;
+      status.className = 'ad-status ok';
+      status.textContent = `✓ Authenticated as ${d.dn}`;
+      updateAdAuthVisibility();
+    } else {
+      status.className = 'ad-status fail';
+      status.textContent = `✗ ${d.error}`;
+    }
+  } catch(e) {
+    status.className = 'ad-status fail';
+    status.textContent = 'Request failed';
+  }
+}
+
+// ── Onboard User helpers ──────────────────────────────────────────────────
+function ouGroupChanged() {
+  // Auto-fill Slurm defaults from first checked group
+  const checked = [...document.querySelectorAll('[name=ou-adg]:checked')].map(c => c.value);
+  if (checked.length === 0) return;
+  const defaults = meta.qos_defaults[checked[0]];
+  if (!defaults) return;
+  document.getElementById('ou-slurm-account').value = defaults.account;
+  document.getElementById('ou-defqos').value = defaults.defqos;
+  // Set extra QoS
+  document.querySelectorAll('[name=ou-xq]').forEach(cb => {
+    cb.checked = defaults.extra_qos.includes(cb.value);
+  });
+  // Auto-fill quota defaults
+  const quotaDef = meta.quota_defaults[checked[0]];
+  if (quotaDef) {
+    const homeRadio = document.querySelector(`[name=ou-home-quota][value="${quotaDef.home}"]`);
+    if (homeRadio) homeRadio.checked = true;
+    const projRadio = document.querySelector(`[name=ou-proj-quota][value="${quotaDef.projects}"]`);
+    if (projRadio) projRadio.checked = true;
+  }
+}
+
+function ouAccountChanged() {
+  // nothing special needed
+}
+
+function buildOuReview() {
+  const username = document.getElementById('ou-username').value.trim();
+  const groups = [...document.querySelectorAll('[name=ou-adg]:checked')].map(c => c.value);
+  const account = document.getElementById('ou-slurm-account').value;
+  const defqos = document.getElementById('ou-defqos').value;
+  const extraQos = [...document.querySelectorAll('[name=ou-xq]:checked')].map(c => c.value);
+  const setQuota = document.getElementById('ou-set-quota').checked;
+  const homeQ = document.querySelector('[name=ou-home-quota]:checked')?.value || 'none';
+  const projQ = document.querySelector('[name=ou-proj-quota]:checked')?.value || 'none';
+
+  document.getElementById('ou-review').innerHTML = reviewRows([
+    ['Username', username],
+    ['AD Groups', groups.length ? groups.join(', ') : '(none — skipped)'],
+    ['Slurm Account', account],
+    ['Default QoS', defqos],
+    ['Extra QoS', extraQos.join(', ') || '(none)'],
+    ['Home Quota', setQuota ? homeQ : '(not setting)'],
+    ['Projects Quota', setQuota ? projQ : '(not setting)'],
+  ]);
+}
+
+// ── Onboard Group helpers ─────────────────────────────────────────────────
+function ogGroupChanged() {
+  const g = document.getElementById('og-ad-group').value;
+  const defaults = meta.qos_defaults[g];
+  if (defaults) {
+    document.getElementById('og-slurm-account').value = defaults.account;
+    document.getElementById('og-defqos').value = defaults.defqos;
+    document.querySelectorAll('[name=og-xq]').forEach(cb => {
+      cb.checked = defaults.extra_qos.includes(cb.value);
+    });
+    const quotaDef = meta.quota_defaults[g];
+    if (quotaDef) {
+      const h = document.querySelector(`[name=og-home-quota][value="${quotaDef.home}"]`);
+      if (h) h.checked = true;
+      const p = document.querySelector(`[name=og-proj-quota][value="${quotaDef.projects}"]`);
+      if (p) p.checked = true;
+    }
+  }
+}
+
+function ogAccountChanged() {}
+
+function buildOgReview() {
+  const group = document.getElementById('og-ad-group').value;
+  const account = document.getElementById('og-slurm-account').value;
+  const defqos = document.getElementById('og-defqos').value;
+  const extraQos = [...document.querySelectorAll('[name=og-xq]:checked')].map(c => c.value);
+  const setQuota = document.getElementById('og-set-quota').checked;
+  const homeQ = document.querySelector('[name=og-home-quota]:checked')?.value || 'none';
+  const projQ = document.querySelector('[name=og-proj-quota]:checked')?.value || 'none';
+
+  document.getElementById('og-review').innerHTML = reviewRows([
+    ['AD Group', group],
+    ['Slurm Account', account],
+    ['Default QoS', defqos],
+    ['Extra QoS', extraQos.join(', ') || '(none)'],
+    ['Per-User Quotas', setQuota ? `home=${homeQ}, projects=${projQ}` : '(not setting)'],
+  ]);
+}
+
+// ── Lookup User (offboard) ────────────────────────────────────────────────
+async function lookupUser() {
+  const username = document.getElementById('fu-username').value.trim();
+  if (!username) return;
+  const res = document.getElementById('fu-lookup-result');
+  res.style.display = 'block';
+  res.textContent = 'Looking up…';
+
+  try {
+    const r = await fetch('/api/onboarding/lookup-user', { method: 'POST',
+      headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username }) });
+    const d = await r.json();
+
+    // Populate AD groups checkboxes
+    const adEl = document.getElementById('fu-ad-groups');
+    if (!adAuthenticated) {
+      adEl.innerHTML = `<div style="color:var(--muted);font-size:12px">Authenticate to AD above to manage group memberships.</div>`;
+    } else {
+      adEl.innerHTML = d.ad_groups.length
+        ? d.ad_groups.map(g => `
+          <div class="check-item">
+            <input type="checkbox" id="fu-ag-${g}" name="fu-adg" value="${g}" checked>
+            <label for="fu-ag-${g}">${g}</label>
+          </div>`).join('')
+        : '<div style="color:var(--muted);font-size:12px">No HPC group memberships found.</div>';
+    }
+
+    // Populate Slurm accounts
+    const slurmEl = document.getElementById('fu-slurm-accounts');
+    slurmEl.innerHTML = d.slurm_assoc.length
+      ? d.slurm_assoc.map(a => `
+        <div class="check-item">
+          <input type="checkbox" id="fu-sa-${a.account}" name="fu-sa" value="${a.account}" checked>
+          <label for="fu-sa-${a.account}">${a.account}</label>
+          <span class="badge">${a.defqos}</span>
+        </div>`).join('')
+      : '<div style="color:var(--muted);font-size:12px">No Slurm accounts found.</div>';
+
+    res.innerHTML = `Found: <b>${d.ad_groups.length}</b> AD group(s), <b>${d.slurm_assoc.length}</b> Slurm account(s)`;
+  } catch(e) {
+    res.textContent = 'Lookup failed: ' + e.message;
+  }
+}
+
+function buildFuReview() {
+  const username = document.getElementById('fu-username').value.trim();
+  const adGroups = [...document.querySelectorAll('[name=fu-adg]:checked')].map(c => c.value);
+  const slurmAccts = [...document.querySelectorAll('[name=fu-sa]:checked')].map(c => c.value);
+  const disableOnly = document.getElementById('fu-disable-only').checked;
+
+  document.getElementById('fu-review').innerHTML = reviewRows([
+    ['Username', username],
+    ['AD Groups', adGroups.length ? adGroups.join(', ') : '(none)'],
+    ['Slurm Action', disableOnly ? 'Disable (MaxSubmitJobs=0)' : `Remove from: ${slurmAccts.join(', ') || '(none)'}`],
+  ]);
+}
+
+function buildFgReview() {
+  const group = document.getElementById('fg-ad-group').value;
+  const account = document.getElementById('fg-slurm-account').value;
+  document.getElementById('fg-review').innerHTML = reviewRows([
+    ['AD Group', group],
+    ['Remove From Slurm Account', account],
+    ['Warning', 'ALL members of this group will be removed'],
+  ]);
+}
+
+// ── Run actions ───────────────────────────────────────────────────────────
+async function runOnboardUser() {
+  const btn = document.getElementById('ou-run-btn');
+  const username = document.getElementById('ou-username').value.trim();
+  const adGroups = [...document.querySelectorAll('[name=ou-adg]:checked')].map(c => c.value);
+  const account = document.getElementById('ou-slurm-account').value;
+  const defqos = document.getElementById('ou-defqos').value;
+  const extraQos = [...document.querySelectorAll('[name=ou-xq]:checked')].map(c => c.value);
+  const setQuota = document.getElementById('ou-set-quota').checked;
+  const homeQ = document.querySelector('[name=ou-home-quota]:checked')?.value || 'none';
+  const projQ = document.querySelector('[name=ou-proj-quota]:checked')?.value || 'none';
+
+  setRunning(btn, 'Onboarding…');
+  try {
+    const r = await fetch('/api/onboarding/onboard-user', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, ad_groups: adGroups, slurm_account: account,
+        slurm_defqos: defqos, slurm_extra_qos: extraQos, set_quota: setQuota,
+        home_quota: homeQ, projects_quota: projQ })
+    });
+    const d = await r.json();
+    showResults('ou', d, username, 'onboarded');
+    goStep(4);
+  } catch(e) { alert('Request failed: ' + e.message); } finally { resetBtn(btn, 'Run Onboarding'); }
+}
+
+async function runOnboardGroup() {
+  const btn = document.getElementById('og-run-btn');
+  const group = document.getElementById('og-ad-group').value;
+  const account = document.getElementById('og-slurm-account').value;
+  const defqos = document.getElementById('og-defqos').value;
+  const extraQos = [...document.querySelectorAll('[name=og-xq]:checked')].map(c => c.value);
+  const setQuota = document.getElementById('og-set-quota').checked;
+  const homeQ = document.querySelector('[name=og-home-quota]:checked')?.value || 'none';
+  const projQ = document.querySelector('[name=og-proj-quota]:checked')?.value || 'none';
+
+  setRunning(btn, 'Processing…');
+  try {
+    const r = await fetch('/api/onboarding/onboard-group', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ad_group: group, slurm_account: account, slurm_defqos: defqos,
+        slurm_extra_qos: extraQos, set_quota: setQuota, home_quota: homeQ, projects_quota: projQ })
+    });
+    const d = await r.json();
+    showResults('og', d, group, 'onboarded');
+    goStep(4);
+  } catch(e) { alert('Request failed: ' + e.message); } finally { resetBtn(btn, 'Run Group Onboarding'); }
+}
+
+async function runOffboardUser() {
+  const btn = document.getElementById('fu-run-btn');
+  const username = document.getElementById('fu-username').value.trim();
+  const adGroups = [...document.querySelectorAll('[name=fu-adg]:checked')].map(c => c.value);
+  const slurmAccts = [...document.querySelectorAll('[name=fu-sa]:checked')].map(c => c.value);
+  const disableOnly = document.getElementById('fu-disable-only').checked;
+
+  setRunning(btn, 'Offboarding…');
+  try {
+    const r = await fetch('/api/onboarding/offboard-user', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, ad_groups: adGroups, slurm_accounts: slurmAccts, disable_only: disableOnly })
+    });
+    const d = await r.json();
+    showResults('fu', d, username, 'offboarded');
+    goStep(3);
+  } catch(e) { alert('Request failed: ' + e.message); } finally { resetBtn(btn, 'Confirm Offboarding'); }
+}
+
+async function runOffboardGroup() {
+  const btn = document.getElementById('fg-run-btn');
+  const group = document.getElementById('fg-ad-group').value;
+  const account = document.getElementById('fg-slurm-account').value;
+
+  setRunning(btn, 'Processing…');
+  try {
+    const r = await fetch('/api/onboarding/offboard-group', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ad_group: group, slurm_account: account })
+    });
+    const d = await r.json();
+    showResults('fg', d, group, 'offboarded');
+    goStep(2);
+  } catch(e) { alert('Request failed: ' + e.message); } finally { resetBtn(btn, 'Confirm Group Offboarding'); }
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────
+function reviewRows(rows) {
+  return rows.map(([k, v]) => `
+    <div class="review-row">
+      <div class="review-key">${k}</div>
+      <div class="review-val">${v}</div>
+    </div>`).join('');
+}
+
+function showResults(prefix, data, target, verb) {
+  const banner = document.getElementById(`${prefix}-result-banner`);
+  const list = document.getElementById(`${prefix}-result-list`);
+  const allOk = data.ok;
+  banner.className = `result-banner ${allOk ? 'ok' : 'fail'}`;
+  banner.textContent = allOk
+    ? `✓ ${target} successfully ${verb}`
+    : `⚠ ${target} ${verb} with errors`;
+
+  list.innerHTML = (data.steps || []).map(s => `
+    <div class="result-item ${s.ok ? 'ok' : 'fail'}">
+      <div class="icon">${s.ok ? '✓' : '✗'}</div>
+      <div class="rlabel">${s.label}</div>
+      <div class="rmsg">${s.msg}</div>
+    </div>`).join('');
+}
+
+function setRunning(btn, label) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>${label}`;
+}
+function resetBtn(btn, label) {
+  btn.disabled = false;
+  btn.innerHTML = label;
+}
+function clearResults(prefix) {
+  const el = document.getElementById(`${prefix}-result-banner`);
+  if (el) el.textContent = '';
+}
+
+// Kick off
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>var BASE = {{ root_path | tojson }};</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HPC Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f4f6f9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --accent:    #2563eb;
+      --accent-lt: #eff6ff;
+
+      --idle:      #10b981;
+      --idle-bg:   #ecfdf5;
+      --mixed:     #f59e0b;
+      --mixed-bg:  #fffbeb;
+      --drain:     #f97316;
+      --drain-bg:  #fff7ed;
+      --down:      #ef4444;
+      --down-bg:   #fef2f2;
+      --alloc:     #8b5cf6;
+      --alloc-bg:  #f5f3ff;
+      --unknown:   #94a3b8;
+      --unknown-bg:#f8fafc;
+
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+      --shadow-hover: 0 4px 12px rgba(0,0,0,.1), 0 8px 32px rgba(0,0,0,.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -.2px;
+    }
+
+    .nav-brand .logo {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .nav-brand .logo svg { width: 16px; height: 16px; }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 7px;
+      transition: all .15s;
+    }
+
+    .nav-links a:hover { background: var(--bg); color: var(--text); }
+    .nav-links a.active { background: var(--accent-lt); color: var(--accent); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s;
+    }
+
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .refresh-btn.spinning svg { animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .cluster-badge {
+      font-size: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: var(--accent-lt);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .page-title { font-size: 22px; font-weight: 600; letter-spacing: -.3px; }
+    .page-sub   { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── SUMMARY STRIP ── */
+    .summary-strip {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .stat-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .stat-pill .count {
+      font-size: 22px;
+      font-weight: 600;
+      font-family: 'Consolas', 'Monaco', monospace;
+      line-height: 1;
+    }
+
+    .stat-pill .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-label { font-size: 13px; color: var(--muted); margin-right: 4px; }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── GRID ── */
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── NODE CARD ── */
+    .node-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .2s, transform .2s, opacity .3s;
+      cursor: default;
+      animation: fadeUp .3s ease both;
+    }
+
+    .node-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .node-card.hidden { display: none; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .node-name {
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Consolas', 'Monaco', monospace;
+      letter-spacing: -.3px;
+    }
+
+    .node-state {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .state-idle    { background: var(--idle-bg);    color: var(--idle);    }
+    .state-mixed   { background: var(--mixed-bg);   color: var(--mixed);   }
+    .state-allocated { background: var(--alloc-bg); color: var(--alloc);   }
+    .state-drain   { background: var(--drain-bg);   color: var(--drain);   }
+    .state-down    { background: var(--down-bg);    color: var(--down);    }
+    .state-unknown { background: var(--unknown-bg); color: var(--unknown); }
+
+    .card-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 14px;
+    }
+
+    .card-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric { }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 3px;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .metric.full { grid-column: 1 / -1; }
+
+    /* CPU bar */
+    .cpu-bar-wrap {
+      margin-top: 14px;
+    }
+
+    .cpu-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .cpu-bar-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .cpu-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--accent);
+      transition: width .6s ease;
+    }
+
+    .cpu-bar-fill.high   { background: var(--down);  }
+    .cpu-bar-fill.medium { background: var(--mixed); }
+
+    /* ── EMPTY / ERROR STATE ── */
+    .state-msg {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .state-msg .icon { font-size: 32px; margin-bottom: 10px; }
+
+    /* ── SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .skeleton-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .sk-title  { height: 14px; width: 60%; margin-bottom: 14px; }
+    .sk-div    { height: 1px;  width: 100%; margin-bottom: 14px; background: var(--border); }
+    .sk-row    { height: 11px; width: 80%; margin-bottom: 8px; }
+    .sk-row.sm { width: 50%; }
+    .sk-bar    { height: 5px;  width: 100%; margin-top: 14px; }
+
+    /* ── LAST UPDATED ── */
+    #last-updated {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    /* ── VIEW TOGGLE ── */
+    .toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .toolbar-row .spacer { flex: 1; }
+    .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .vt-btn { background: none; border: none; padding: 6px 10px; cursor: pointer; color: var(--muted); display: flex; align-items: center; transition: all .15s; }
+    .vt-btn:hover { background: var(--bg); color: var(--text); }
+    .vt-btn.active { background: var(--accent); color: #fff; }
+    .vt-btn svg { width: 15px; height: 15px; }
+
+    /* ── TABLE VIEW ── */
+    .nodes-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .nodes-table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .nodes-table-wrap thead { background: var(--bg); border-bottom: 1px solid var(--border); }
+    .nodes-table-wrap th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); cursor: pointer; user-select: none; }
+    .nodes-table-wrap th:hover { color: var(--text); }
+    .nodes-table-wrap tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    .nodes-table-wrap tbody tr:last-child { border-bottom: none; }
+    .nodes-table-wrap tbody tr:hover { background: var(--bg); }
+    .nodes-table-wrap td { padding: 10px 16px; vertical-align: middle; font-size: 13px; }
+    .mono { font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; }
+    .td-bar { min-width: 120px; }
+    .td-bar-inner { display: flex; align-items: center; gap: 8px; }
+    .td-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .td-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); }
+    .td-bar-fill.high { background: var(--down); }
+    .td-bar-fill.medium { background: var(--mixed); }
+
+    /* ── NODE GROUPS ── */
+    .group-section { margin-bottom: 32px; }
+    .group-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .group-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+    .group-count { font-size: 11px; background: var(--border); color: var(--muted); padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+    .group-line  { flex: 1; height: 1px; background: var(--border); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/">
+    <div class="logo">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="5" height="5" rx="1" fill="white"/>
+        <rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity=".6"/>
+        <rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity=".6"/>
+        <rect x="9" y="9" width="5" height="5" rx="1" fill="white" opacity=".3"/>
+      </svg>
+    </div>
+    HPC Portal
+  </a>
+
+  <ul class="nav-links">
+    <li><a href="/" class="active">Nodes</a></li>
+    <li><a href="{{ root_path }}/slurm">Slurm Admin</a></li>
+    <li><a href="{{ root_path }}/storage">Storage</a></li>
+    <li><a href="{{ root_path }}/actions">Actions</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <span class="cluster-badge">demo-hpc</span>
+    <span id="last-updated">—</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadNodes()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Compute Nodes</div>
+      <div class="page-sub">Real-time node status across the cluster</div>
+    </div>
+  </div>
+
+  <div class="summary-strip" id="summary-strip">
+    <!-- filled by JS -->
+  </div>
+
+  <div class="toolbar-row">
+    <span class="filter-label">Filter</span>
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" data-filter="idle"      onclick="setFilter('idle', this)">Idle</button>
+    <button class="filter-btn" data-filter="mixed"     onclick="setFilter('mixed', this)">Mixed</button>
+    <button class="filter-btn" data-filter="allocated" onclick="setFilter('allocated', this)">Allocated</button>
+    <button class="filter-btn" data-filter="drain"     onclick="setFilter('drain', this)">Drain</button>
+    <button class="filter-btn" data-filter="down"      onclick="setFilter('down', this)">Down</button>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">Group by</span>
+      <button class="filter-btn active" id="grp-type" onclick="setGroupMode('type',this)">Type</button>
+      <button class="filter-btn" id="grp-gpu"  onclick="setGroupMode('gpu',this)">GPU</button>
+    </div>
+    <div class="view-toggle">
+      <button class="vt-btn active" id="nv-cards" onclick="setNodesView('cards')" title="Cards">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="vt-btn" id="nv-table" onclick="setNodesView('table')" title="Table">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="nodes-content"></div>
+</main>
+
+<script>
+  let currentFilter = 'all';
+  let nodesData = [];
+
+  function stateClass(state) {
+    const s = state.toLowerCase();
+    if (s.includes('idle'))      return 'idle';
+    if (s.includes('mixed'))     return 'mixed';
+    if (s.includes('allocated')) return 'allocated';
+    if (s.includes('drain'))     return 'drain';
+    if (s.includes('down'))      return 'down';
+    return 'unknown';
+  }
+
+  function parseCpus(cpuStr) {
+    // format: allocated/idle/other/total
+    const parts = cpuStr.split('/');
+    if (parts.length === 4) {
+      return { allocated: +parts[0], total: +parts[3] };
+    }
+    return null;
+  }
+
+  function formatMemory(mb) {
+    const gb = Math.round(mb / 1000);
+    return gb >= 1000 ? `${(gb/1000).toFixed(1)} TB` : `${gb} GB`;
+  }
+
+  function formatGres(gres) {
+    if (!gres || gres === '(null)') return '—';
+    return gres.replace('gpu:', '').replace(/_/g, ' ');
+  }
+
+  function renderSkeletons(n = 6) {
+    return Array.from({length: n}, () => `
+      <div class="skeleton-card">
+        <div class="skeleton sk-title"></div>
+        <div class="sk-div"></div>
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-row sm"></div>
+        <div class="skeleton sk-row"></div>
+        <div class="skeleton sk-bar"></div>
+      </div>`).join('');
+  }
+
+  function renderSummary(nodes) {
+    const counts = { total: nodes.length, idle: 0, mixed: 0, allocated: 0, drain: 0, down: 0 };
+    nodes.forEach(n => {
+      const s = stateClass(n.state);
+      if (counts[s] !== undefined) counts[s]++;
+    });
+
+    const items = [
+      { label: 'Total Nodes', key: 'total',     color: 'var(--accent)'  },
+      { label: 'Idle',        key: 'idle',      color: 'var(--idle)'    },
+      { label: 'Mixed',       key: 'mixed',     color: 'var(--mixed)'   },
+      { label: 'Allocated',   key: 'allocated', color: 'var(--alloc)'   },
+      { label: 'Drain',       key: 'drain',     color: 'var(--drain)'   },
+      { label: 'Down',        key: 'down',      color: 'var(--down)'    },
+    ];
+
+    document.getElementById('summary-strip').innerHTML = items.map(i => `
+      <div class="stat-pill">
+        <div class="stat-dot" style="background:${i.color}"></div>
+        <div>
+          <div class="count">${counts[i.key]}</div>
+          <div class="label">${i.label}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Node classification
+  function nodeGroup(name) {
+    if (/research_beta/i.test(name)) return 'researcher';
+    if (/apps/i.test(name))   return 'apps';
+    return 'compute';
+  }
+
+  function gpuType(gres) {
+    if (!gres || gres === '(null)') return 'No GPU';
+    const g = gres.replace('gpu:', '').toLowerCase();
+    if (g.includes('a6000'))     return 'RTX A6000';
+    if (g.includes('a5000'))     return 'RTX A5000';
+    if (g.includes('rtx_a'))     return 'RTX A-Series';
+    if (g.includes('3090'))      return 'RTX 3090';
+    if (g.includes('titan_rtx')) return 'Titan RTX';
+    if (g.includes('rtx6000'))   return 'Quadro RTX 6000';
+    if (g.includes('1080ti') || g.includes('1080_ti')) return 'GTX 1080 Ti';
+    return gres.replace('gpu:', '').replace(/_/g, ' ');
+  }
+
+  const GROUP_LABELS = {
+    compute:    { label: '🖥 Compute Nodes', order: 0 },
+    researcher: { label: '🔬 Researcher Nodes', order: 1 },
+    apps:       { label: '⚙️ Apps / CPU Nodes', order: 2 },
+  };
+
+  function makeNodeCard(n, i) {
+    const sc   = stateClass(n.state);
+    const cpus = parseCpus(n.cpus);
+    const pct  = cpus ? Math.round((cpus.allocated / cpus.total) * 100) : 0;
+    const barCls = pct >= 90 ? 'high' : pct >= 50 ? 'medium' : '';
+    const show = (currentFilter === 'all' || sc === currentFilter) ? '' : 'hidden';
+    return `
+      <div class="node-card ${show}" data-state="${sc}" style="animation-delay:${i * 30}ms">
+        <div class="card-header">
+          <div class="node-name">${n.node}</div>
+          <span class="node-state state-${sc}">${n.state}</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-metrics">
+          <div class="metric">
+            <div class="metric-label">CPUs</div>
+            <div class="metric-value">${cpus ? `${cpus.allocated} / ${cpus.total}` : n.cpus}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Memory</div>
+            <div class="metric-value">${formatMemory(n.memory)}</div>
+          </div>
+          <div class="metric full">
+            <div class="metric-label">GPU</div>
+            <div class="metric-value">${formatGres(n.gres)}</div>
+          </div>
+        </div>
+        ${cpus ? `
+        <div class="cpu-bar-wrap">
+          <div class="cpu-bar-label"><span>CPU utilisation</span><span>${pct}%</span></div>
+          <div class="cpu-bar-track"><div class="cpu-bar-fill ${barCls}" style="width:${pct}%"></div></div>
+        </div>` : ''}
+      </div>`;
+  }
+
+  let groupMode = 'type'; // 'type' or 'gpu'
+
+  function renderCards(nodes) {
+    if (!nodes.length) {
+      document.getElementById('nodes-content').innerHTML =
+        `<div class="state-msg"><div class="icon">🖥</div>No nodes found.</div>`;
+      return;
+    }
+
+    // Build groups
+    const groups = {};
+    nodes.forEach((n, i) => {
+      const key = groupMode === 'gpu' ? gpuType(n.gres) : nodeGroup(n.node);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push({node: n, idx: i});
+    });
+
+    // Sort group keys
+    let keys = Object.keys(groups);
+    if (groupMode === 'type') {
+      keys.sort((a,b) => (GROUP_LABELS[a]?.order??9) - (GROUP_LABELS[b]?.order??9));
+    } else {
+      keys.sort();
+    }
+
+    let html = '';
+    keys.forEach(key => {
+      const items = groups[key];
+      const label = groupMode === 'type' ? (GROUP_LABELS[key]?.label || key) : `🎮 ${key}`;
+      const visCount = items.filter(({node: n}) =>
+        currentFilter === 'all' || stateClass(n.state) === currentFilter).length;
+      if (visCount === 0 && currentFilter !== 'all') return;
+      const cards = items.map(({node: n, idx}) => makeNodeCard(n, idx)).join('');
+      html += `
+        <div class="group-section">
+          <div class="group-header">
+            <span class="group-title">${label}</span>
+            <span class="group-count">${items.length} node${items.length!==1?'s':''}</span>
+            <div class="group-line"></div>
+          </div>
+          <div class="nodes-grid">${cards}</div>
+        </div>`;
+    });
+
+    document.getElementById('nodes-content').innerHTML = html;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (nodesView === 'table') {
+      renderTable(nodesData);
+    } else {
+      document.querySelectorAll('.node-card').forEach(card => {
+        const match = filter === 'all' || card.dataset.state === filter;
+        card.classList.toggle('hidden', !match);
+      });
+    }
+  }
+
+  async function loadNodes() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+
+    try {
+      const res  = await fetch(BASE+'/api/slurm/nodes');
+      const data = await res.json();
+      nodesData  = data.nodes || [];
+
+      renderSummary(nodesData);
+      if (nodesView === 'cards') renderCards(nodesData);
+      else renderTable(nodesData);
+
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        `Updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
+    } catch (e) {
+      document.getElementById('nodes-content').innerHTML =
+        `<div class="state-msg"><div class="icon">⚠️</div>Failed to load nodes: ${e.message}</div>`;
+    } finally {
+      btn.classList.remove('spinning');
+    }
+  }
+
+  let nodesView = 'cards';
+
+  function setGroupMode(mode, btn) {
+    groupMode = mode;
+    document.querySelectorAll('[id^="grp-"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (nodesData.length) renderCards(nodesData);
+  }
+
+  function setNodesView(v) {
+    nodesView = v;
+    ['cards', 'table'].forEach(x =>
+      document.getElementById(`nv-${x}`).classList.toggle('active', x === v));
+    if (nodesData.length) {
+      if (v === 'cards') renderCards(nodesData);
+      else renderTable(nodesData);
+    }
+  }
+
+  function makeTableRow(n) {
+    const sc   = stateClass(n.state);
+    const cpus = parseCpus(n.cpus);
+    const pct  = cpus ? Math.round((cpus.allocated / cpus.total) * 100) : 0;
+    const barCls = pct >= 90 ? 'high' : pct >= 50 ? 'medium' : '';
+    return `<tr>
+      <td class="mono">${n.node}</td>
+      <td><span class="node-state state-${sc}">${n.state}</span></td>
+      <td class="mono">${cpus ? `${cpus.allocated} / ${cpus.total}` : n.cpus}</td>
+      <td class="mono">${formatMemory(n.memory)}</td>
+      <td class="mono">${formatGres(n.gres)}</td>
+      <td class="td-bar"><div class="td-bar-inner">
+        <div class="td-bar-track"><div class="td-bar-fill ${barCls}" style="width:${pct}%"></div></div>
+        <span style="font-size:11px;color:var(--muted);min-width:32px;text-align:right">${pct}%</span>
+      </div></td>
+    </tr>`;
+  }
+
+  function renderTable(nodes) {
+    const filtered = currentFilter === 'all' ? nodes :
+      nodes.filter(n => stateClass(n.state) === currentFilter);
+    if (!filtered.length) {
+      document.getElementById('nodes-content').innerHTML =
+        `<div class="state-msg"><div class="icon">🖥</div>No nodes found.</div>`;
+      return;
+    }
+
+    const thead = `<thead><tr><th>Node</th><th>State</th><th>CPUs</th><th>Memory</th><th>GPU</th><th>CPU Usage</th></tr></thead>`;
+
+    if (groupMode === 'none') {
+      document.getElementById('nodes-content').innerHTML = `
+        <div class="nodes-table-wrap"><table>${thead}<tbody>${filtered.map(makeTableRow).join('')}</tbody></table></div>`;
+      return;
+    }
+
+    // grouped table
+    const groups = {};
+    filtered.forEach(n => {
+      const key = groupMode === 'gpu' ? gpuType(n.gres) : nodeGroup(n.node);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(n);
+    });
+
+    let keys = Object.keys(groups);
+    if (groupMode === 'type') keys.sort((a,b)=>(GROUP_LABELS[a]?.order??9)-(GROUP_LABELS[b]?.order??9));
+    else keys.sort();
+
+    let html = '';
+    keys.forEach(key => {
+      const label = groupMode === 'type' ? (GROUP_LABELS[key]?.label||key) : `🎮 ${key}`;
+      const rows = groups[key].map(makeTableRow).join('');
+      html += `
+        <div class="group-section">
+          <div class="group-header">
+            <span class="group-title">${label}</span>
+            <span class="group-count">${groups[key].length} node${groups[key].length!==1?'s':''}</span>
+            <div class="group-line"></div>
+          </div>
+          <div class="nodes-table-wrap"><table>${thead}<tbody>${rows}</tbody></table></div>
+        </div>`;
+    });
+    document.getElementById('nodes-content').innerHTML = html;
+  }
+
+  // Init
+  document.getElementById('nodes-content').innerHTML = `<div class="nodes-grid">${renderSkeletons(8)}</div>`;
+  loadNodes();
+
+  // Auto-refresh every 30s
+  setInterval(loadNodes, 30000);
+</script>
+</body>
+</html>

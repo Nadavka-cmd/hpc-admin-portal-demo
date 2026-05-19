@@ -1,0 +1,12 @@
+config.yaml
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.key
+*.pem
+*.crt
+*.p12
+*.log

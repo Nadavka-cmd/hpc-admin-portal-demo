@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>var BASE = {{ root_path | tojson }};</script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HPC Portal — Automation</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f4f6f9;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;
+      --accent:#2563eb;--accent-lt:#eff6ff;
+      --ok:#10b981;--ok-bg:#ecfdf5;
+      --warn:#f59e0b;--warn-bg:#fffbeb;
+      --danger:#ef4444;--danger-bg:#fef2f2;
+      --pending:#8b5cf6;--pending-bg:#f5f3ff;
+      --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+      --shadow-md:0 4px 12px rgba(0,0,0,.1),0 8px 32px rgba(0,0,0,.06);
+    }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif}
+    .site-sidebar{width:220px;flex-shrink:0;background:#1e2435;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;overflow-y:auto}
+    .sidebar-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
+    .sidebar-logo-icon{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sidebar-logo-text{font-size:13px;font-weight:600;color:#fff}
+    .sidebar-logo-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+    .sb-page-link{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);text-decoration:none;transition:color .15s;margin-top:4px}
+    .sb-page-link:hover{color:rgba(255,255,255,.85)}
+    .sb-page-link.site-active{color:#fff}
+    .sb-sub-item{display:block;width:100%;text-align:left;background:none;border:none;padding:6px 16px 6px 32px;font-size:12px;font-family:'Inter',sans-serif;color:rgba(255,255,255,.3);cursor:pointer;transition:all .15s;border-left:2px solid transparent;position:relative;text-decoration:none}
+    .sb-sub-item::before{content:'';position:absolute;left:20px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.2)}
+    .sb-sub-item:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.04)}
+    .sb-sub-item.active{color:#fff;border-left-color:#2563eb;background:rgba(37,99,235,.15)}
+    .sb-sub-item.active::before{background:#2563eb}
+    .sb-page-group.current .sb-sub-item{color:rgba(255,255,255,.45)}
+    .sb-page-group.current .sb-sub-item:hover{color:rgba(255,255,255,.75)}
+    .sb-page-group.current .sb-page-link{color:#fff}
+    .sb-sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+    .sidebar-bottom{margin-top:auto;padding:10px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:rgba(255,255,255,.25);font-family:monospace;flex-shrink:0}
+    .main-wrapper{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
+    .main-content{flex:1;padding:28px 32px}
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;text-decoration:none;color:var(--text)}
+    .nav-brand .logo{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center}
+    .nav-brand .logo svg{width:16px;height:16px}
+    .nav-links{display:flex;gap:4px;list-style:none}
+    .nav-links a{text-decoration:none;color:var(--muted);font-size:14px;font-weight:500;padding:6px 12px;border-radius:7px;transition:all .15s}
+    .nav-links a:hover{background:var(--bg);color:var(--text)}
+    .nav-links a.active{background:var(--accent-lt);color:var(--accent)}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .refresh-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+    .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .refresh-btn.spinning svg{animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .cluster-badge{font-size:12px;font-family:'Consolas','Monaco',monospace;background:var(--accent-lt);color:var(--accent);padding:4px 10px;border-radius:20px;font-weight:500}
+    #last-updated{font-size:12px;color:var(--muted);font-family:'Consolas','Monaco',monospace}
+    main{max-width:1400px;margin:0 auto;padding:32px}
+    .page-title{font-size:22px;font-weight:600;letter-spacing:-.3px;margin-bottom:4px}
+    .page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+    .tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:28px}
+    .tab-btn{background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:10px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s}
+    .tab-btn:hover{color:var(--text)}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+    .section-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .section-title .badge{font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400}
+    .limit-input{flex:1;min-width:140px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Consolas','Monaco',monospace;outline:none;transition:border-color .15s}
+    .limit-input:focus{border-color:var(--accent)}
+    .limit-input::placeholder{font-family:inherit;color:var(--muted)}
+    .launch-btn{background:var(--accent);border:none;border-radius:8px;padding:7px 18px;font-size:13px;font-family:inherit;color:#fff;cursor:pointer;font-weight:500;white-space:nowrap;transition:opacity .15s;display:flex;align-items:center;gap:6px}
+    .launch-btn:hover{opacity:.88}
+    .launch-btn:disabled{opacity:.5;cursor:not-allowed}
+    .launch-btn.spinning svg{animation:spin .7s linear infinite}
+    .tc-result{font-size:12px;margin-top:8px;min-height:18px;padding:4px 0}
+    .jobs-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .jobs-section table{width:100%;border-collapse:collapse;font-size:13px}
+    .jobs-section thead{background:var(--bg);border-bottom:1px solid var(--border)}
+    .jobs-section th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+    .jobs-section tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+    .jobs-section tbody tr:last-child{border-bottom:none}
+    .jobs-section tbody tr:hover{background:var(--bg)}
+    .jobs-section td{padding:10px 16px;vertical-align:middle}
+    .mono{font-family:'Consolas','Monaco',monospace;font-size:12px}
+    .status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+    .status-badge .dot{width:6px;height:6px;border-radius:50%}
+    .s-successful{background:var(--ok-bg);color:var(--ok)}.s-successful .dot{background:var(--ok)}
+    .s-failed{background:var(--danger-bg);color:var(--danger)}.s-failed .dot{background:var(--danger)}
+    .s-running{background:var(--accent-lt);color:var(--accent)}.s-running .dot{background:var(--accent);animation:pulse .8s ease infinite}
+    .s-pending{background:var(--pending-bg);color:var(--pending)}.s-pending .dot{background:var(--pending)}
+    .s-canceled{background:var(--bg);color:var(--muted)}.s-canceled .dot{background:var(--muted)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .job-id-link{color:var(--accent);font-family:'Consolas','Monaco',monospace;font-weight:500;cursor:pointer}
+    .job-id-link:hover{text-decoration:underline}
+    .output-panel{margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .output-header{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg)}
+    .output-title{font-size:14px;font-weight:600;font-family:'Consolas','Monaco',monospace}
+    .output-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+    .output-close:hover{background:var(--border)}
+    .output-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif}
+    .site-sidebar{width:220px;flex-shrink:0;background:#1e2435;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;overflow-y:auto}
+    .sidebar-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
+    .sidebar-logo-icon{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sidebar-logo-text{font-size:13px;font-weight:600;color:#fff}
+    .sidebar-logo-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+    .sb-page-link{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);text-decoration:none;transition:color .15s;margin-top:4px}
+    .sb-page-link:hover{color:rgba(255,255,255,.85)}
+    .sb-page-link.site-active{color:#fff}
+    .sb-sub-item{display:block;width:100%;text-align:left;background:none;border:none;padding:6px 16px 6px 32px;font-size:12px;font-family:'Inter',sans-serif;color:rgba(255,255,255,.3);cursor:pointer;transition:all .15s;border-left:2px solid transparent;position:relative;text-decoration:none}
+    .sb-sub-item::before{content:'';position:absolute;left:20px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.2)}
+    .sb-sub-item:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.04)}
+    .sb-sub-item.active{color:#fff;border-left-color:#2563eb;background:rgba(37,99,235,.15)}
+    .sb-sub-item.active::before{background:#2563eb}
+    .sb-page-group.current .sb-sub-item{color:rgba(255,255,255,.45)}
+    .sb-page-group.current .sb-sub-item:hover{color:rgba(255,255,255,.75)}
+    .sb-page-group.current .sb-page-link{color:#fff}
+    .sb-sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+    .sidebar-bottom{margin-top:auto;padding:10px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:rgba(255,255,255,.25);font-family:monospace;flex-shrink:0}
+    .main-wrapper{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
+    .main-content{flex:1;padding:28px 32px}
+    .output-body pre{font-family:'Consolas','Monaco',monospace;font-size:12px;line-height:1.6;color:#cdd6f4;white-space:pre-wrap;word-break:break-all}
+    .output-refresh{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--muted)}
+    .output-refresh:hover{border-color:var(--accent);color:var(--accent)}
+    .inv-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+    .inv-group-header{padding:12px 20px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .inv-group-name{font-size:14px;font-weight:600;font-family:monospace}
+    .inv-count{font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px}
+    .inv-table{width:100%;border-collapse:collapse;font-size:13px}
+    .inv-table th{padding:8px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border)}
+    .inv-table td{padding:10px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+    .inv-table tr:last-child td{border-bottom:none}
+    .inv-table tr:hover td{background:var(--bg)}
+    .remove-host-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--muted);transition:all .15s}
+    .remove-host-btn:hover{border-color:var(--danger);color:var(--danger)}
+    .add-host-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;max-width:600px}
+    .form-label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;font-weight:500}
+    .form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;background:var(--surface);color:var(--text)}
+    .form-input:focus{border-color:var(--accent)}
+    .form-grid{display:grid;gap:16px}
+    .group-checkboxes{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .group-cb-label{display:flex;align-items:center;gap:6px;font-size:13px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;user-select:none}
+    .group-cb-label:hover{border-color:var(--accent);color:var(--accent)}
+    .group-cb-label input{accent-color:var(--accent)}
+    .sync-btn{background:var(--accent);border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-family:inherit;color:#fff;cursor:pointer;font-weight:500;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+    .sync-btn:hover{opacity:.88}
+    .sync-btn:disabled{opacity:.5;cursor:not-allowed}
+    .skeleton{background:linear-gradient(90deg,#f0f4f8 25%,#e2e8f0 50%,#f0f4f8 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;display:block}
+    @keyframes shimmer{to{background-position:-200% 0}}
+          .ob-panel{display:none}.ob-panel.active{display:block}
+    .ob-check-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);cursor:pointer}
+    .ob-check-item:hover{border-color:var(--accent)}.ob-check-item label{cursor:pointer;font-size:13px}
+    .ob-check-item .ob-badge{margin-left:auto;font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--muted);font-family:monospace}
+    .ob-pill input{position:absolute;opacity:0;width:0}.ob-pill{position:relative}
+    .ob-pill label{display:block;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;transition:all .1s}
+    .ob-pill input:checked+label{background:rgba(79,142,247,.15);border-color:var(--accent);color:var(--accent)}
+    .ob-review-row{display:grid;grid-template-columns:160px 1fr;border-bottom:1px solid var(--border)}
+    .ob-review-row:last-child{border-bottom:none}
+    .ob-review-key{background:var(--surface);padding:9px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+    .ob-review-val{padding:9px 12px;font-size:13px;font-family:monospace;color:var(--text);word-break:break-all}
+    .ob-result-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)}
+    .ob-result-item.ok{border-color:rgba(62,207,142,.25)}.ob-result-item.fail{border-color:rgba(248,113,113,.25)}
+    .ob-result-label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;width:280px;flex-shrink:0}
+    .ob-step-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;border:2px solid var(--border);background:var(--surface);color:var(--muted);transition:all .2s}
+    .ob-step-dot.active{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1)}
+    .ob-step-dot.done{border-color:var(--ok);background:var(--ok);color:#000}
+    .ob-step-lbl{font-size:11px;color:var(--muted);margin-left:6px;white-space:nowrap}
+    .ob-step-lbl.active{color:var(--accent)}
+    .ob-connector{flex:1;height:2px;background:var(--border);margin:0 6px;min-width:16px}
+    .ob-connector.done{background:var(--ok)}
+    #pane-onboarding input:-webkit-autofill,
+    #pane-onboarding input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+      -webkit-text-fill-color: var(--text) !important;
+    }
+
+
+    /* ── Sidebar collapse ── */
+    .site-sidebar{transition:width .2s ease}
+    .site-sidebar.collapsed{width:48px;overflow:hidden}
+    .site-sidebar.collapsed .sidebar-logo-text-wrap,
+    .site-sidebar.collapsed .sb-page-link span,
+    .site-sidebar.collapsed .sb-sub-item,
+    .site-sidebar.collapsed .sb-sep,
+    .site-sidebar.collapsed .sidebar-bottom{display:none!important}
+    .site-sidebar.collapsed .sb-page-link{justify-content:center;padding:9px 0}
+    .site-sidebar.collapsed .sidebar-logo-inner{justify-content:center;padding:14px 0}
+    .main-wrapper{transition:margin-left .2s ease}
+    .main-wrapper.sidebar-collapsed{margin-left:48px}
+    .sb-collapse-btn{position:absolute;top:12px;right:8px;background:rgba(255,255,255,.08);border:none;border-radius:5px;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px;line-height:1;padding:3px 6px;transition:all .15s;z-index:10}
+    .sb-collapse-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+    .site-sidebar.collapsed .sb-collapse-btn{position:static;margin:10px auto;display:block;width:30px;text-align:center}
+</style>
+</head>
+<body>
+{% set current_page = 'actions' %}
+{% include '_sidebar.html' %}
+<div class="main-wrapper">
+  <div class="topbar">
+    <span style="font-size:12px;color:var(--muted);font-family:monospace" id="last-updated-top">—</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshActive()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="main-content">
+
+
+  <!-- ══ AUTOMATION TAB ══ -->
+  <div class="tab-pane active" id="pane-automation">
+    <div class="section-title">🚀 Job Templates <span class="badge">AWX</span></div>
+    <div id="templates-grid">
+      <div class="skeleton" style="width:100%;height:140px;border-radius:12px;margin-bottom:12px"></div>
+      <div class="skeleton" style="width:100%;height:140px;border-radius:12px;margin-bottom:28px"></div>
+    </div>
+    <div class="section-title">📋 Recent Jobs <span class="badge" id="jobs-count"></span></div>
+    <div class="jobs-section">
+      <table>
+        <thead><tr>
+          <th>Job ID</th><th>Template</th><th>Status</th><th>Limit</th><th>Started</th><th>Duration</th><th>Launched By</th>
+        </tr></thead>
+        <tbody id="jobs-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="output-panel" id="output-panel" style="display:none">
+      <div class="output-header">
+        <span class="output-title" id="output-title">Job Output</span>
+        <span id="output-status-badge"></span>
+        <button class="output-refresh" onclick="refreshOutput()">⟳ Refresh</button>
+        <button class="output-close" onclick="document.getElementById('output-panel').style.display='none'">×</button>
+      </div>
+      <div class="output-body"><pre id="output-pre">Loading…</pre></div>
+    </div>
+  </div>
+
+  <!-- ══ INVENTORY TAB ══ -->
+  <div class="tab-pane" id="pane-inventory">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:0">🖥 AWX Inventory — HPC Cluster V2</div>
+      <div style="display:flex;gap:8px">
+        <button class="sync-btn secondary" onclick="toggleAddHostForm()" id="add-host-toggle-btn" style="padding:6px 14px;font-size:12px">➕ Add Host</button>
+        <button class="sync-btn" onclick="inventoryLoaded=false;loadInventory();" style="padding:6px 14px;font-size:12px">⟳ Refresh</button>
+      </div>
+    </div>
+
+    <!-- INLINE ADD HOST FORM -->
+    <div id="add-host-inline" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;box-shadow:var(--shadow)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:16px">➕ Add Host to Inventory</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Hostname *</label>
+          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. demo-node12" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">Description (optional)</label>
+          <input class="form-input" id="ah-desc" type="text" placeholder="e.g. GPU node, rack 3">
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">Variables (optional, YAML or JSON)</label>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.x.x"></textarea>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="form-label">Add to groups</label>
+          <div class="group-checkboxes" id="ah-groups">
+            <div style="color:var(--muted);font-size:13px">Loading groups…</div>
+          </div>
+        </div>
+        <div style="grid-column:1/-1;display:flex;align-items:center;gap:12px">
+          <button class="sync-btn" id="ah-submit-btn" onclick="submitAddHost()">Add Host</button>
+          <button onclick="toggleAddHostForm()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--muted)">Cancel</button>
+          <div id="ah-result" style="font-size:13px;min-height:20px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="inventory-content">
+      <div style="text-align:center;padding:60px;color:var(--muted)">Loading inventory…</div>
+    </div>
+
+  </div>
+
+  <!-- ══ ONBOARDING TAB ══ -->
+  <div class="tab-pane" id="pane-onboarding">
+    <div id="ob-ad-warn" style="display:none;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#fbbf24">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span>⚠ AD not authenticated — group membership steps will be skipped.</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="ob-ad-user" type="text" placeholder="username" autocomplete="username"
+            style="padding:4px 8px;border:1px solid rgba(251,191,36,.4);border-radius:6px;font-size:12px;background:rgba(0,0,0,.2);color:var(--text);width:120px;font-family:inherit;outline:none">
+          <input id="ob-ad-pass" type="password" placeholder="password" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')obAdLogin()"
+            style="padding:4px 8px;border:1px solid rgba(251,191,36,.4);border-radius:6px;font-size:12px;background:rgba(0,0,0,.2);color:var(--text);width:120px;font-family:inherit;outline:none">
+          <button onclick="obAdLogin()" id="ob-ad-login-btn"
+            style="padding:4px 10px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:6px;font-size:12px;color:#fbbf24;cursor:pointer;font-family:inherit">Login</button>
+          <span id="ob-ad-login-status" style="font-size:12px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+      <button class="sync-btn" id="ob-btn-onboard-user"  onclick="obSetMode('onboard-user')"  style="background:var(--accent);border-color:var(--accent);color:#fff">＋ Onboard User</button>
+      <button class="sync-btn" id="ob-btn-onboard-group" onclick="obSetMode('onboard-group')">＋ Onboard Group</button>
+      <button class="sync-btn" id="ob-btn-offboard-user" onclick="obSetMode('offboard-user')">✕ Offboard User</button>
+      <button class="sync-btn" id="ob-btn-offboard-group" onclick="obSetMode('offboard-group')">✕ Offboard Group</button>
+    </div>
+
+    <!-- Wizard card -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-width:820px">
+
+      <!-- Step progress -->
+      <div id="ob-steps-bar" style="display:flex;padding:18px 24px 0;gap:0;border-bottom:1px solid var(--border);padding-bottom:18px"></div>
+
+      <div style="padding:24px">
+
+        <!-- ── ONBOARD USER ── -->
+        <div id="ob-wizard-onboard-user" class="ob-wizard">
+          <div class="ob-panel active" data-step="0">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">User Identity</div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Usernames (sAMAccountName) — one per line</label>
+              <textarea id="ou-username" placeholder="jsmith&#10;adoe&#10;bwilson" autocomplete="off" rows="4"
+                style="width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;resize:vertical"></textarea>
+              <div style="margin-top:8px">
+                <button class="sync-btn secondary" onclick="ouCheckUser()" id="ou-check-btn">Check AD</button>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">All users must already exist in AD. Each will be validated before continuing.</div>
+              <div id="ou-check-result" style="display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:8px"></div>
+            </div>
+          </div>
+
+          <div class="ob-panel" data-step="1">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">AD Groups &amp; Slurm Account</div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AD Groups</label>
+              <div id="ou-ad-groups" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Slurm Account</label>
+                <select id="ou-slurm-account" onchange="ouAccountChanged()"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Default QoS</label>
+                <select id="ou-defqos"
+                  style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Extra QoS</label>
+              <div id="ou-extra-qos" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+          </div>
+
+          <div class="ob-panel" data-step="2">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Storage Quotas</div>
+            <div style="margin-bottom:14px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="ou-set-quota" checked onchange="document.getElementById('ou-quota-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)">
+                <span style="font-size:13px">Set ZFS quotas for this user</span>
+              </label>
+            </div>
+            <div id="ou-quota-fields">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-a)</label>
+                  <div id="ou-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-b)</label>
+                  <div id="ou-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ob-panel" data-step="3">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Skel Profile</div>
+            <div style="margin-bottom:6px;font-size:13px;color:var(--muted)">Optionally apply a skel profile to the user's home directory. The home directory must exist (user must have logged in at least once).</div>
+            <div id="ou-skel-options" style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
+              <div class="ob-check-item"><input type="radio" id="ou-skel-none" name="ou-skel" value="" checked><label for="ou-skel-none">None</label></div>
+            </div>
+          </div>
+
+          <div class="ob-panel" data-step="4">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Review &amp; Confirm</div>
+            <div id="ou-review" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px"></div>
+            <button class="sync-btn" id="ou-run-btn" onclick="runOnboardUser()" style="background:var(--accent);border-color:var(--accent);color:#fff">Run Onboarding</button>
+          </div>
+
+          <div class="ob-panel" data-step="5">
+            <div id="ou-result-banner" style="padding:12px 16px;border-radius:var(--radius);font-weight:600;font-size:14px;margin-bottom:14px"></div>
+            <div id="ou-result-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            <button class="sync-btn secondary" onclick="obResetWizard()" style="margin-top:16px">Start Over</button>
+          </div>
+        </div>
+
+        <!-- ── ONBOARD GROUP ── -->
+        <div id="ob-wizard-onboard-group" class="ob-wizard" style="display:none">
+
+          <!-- Step 0: Group name + AD check -->
+          <div class="ob-panel active" data-step="0">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Group Identity</div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Group Name</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="og-group-name" placeholder="e.g. ml_intro_2026" autocomplete="off"
+                  style="width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
+                <button class="sync-btn secondary" onclick="ogCheckGroup()" id="og-check-btn">Check AD</button>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Will be created in HPC OU if it doesn't exist.</div>
+            </div>
+            <div id="og-check-result" style="display:none;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);font-size:13px;margin-top:8px"></div>
+          </div>
+
+          <!-- Step 1: Parent group + members -->
+          <div class="ob-panel" data-step="1">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Group Membership</div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Nest Under (HPC Parent Group)</label>
+              <select id="og-parent-group"
+                style="width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Members (one username per line)</label>
+              <textarea id="og-members" rows="8" placeholder="jsmith&#10;adoe&#10;bwilson"
+                style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:13px;font-family:monospace;outline:none;resize:vertical"></textarea>
+              <div style="display:flex;justify-content:space-between;margin-top:6px">
+                <span style="font-size:11px;color:var(--muted)">Paste a list of usernames. They must exist in AD.</span>
+                <button class="sync-btn secondary" onclick="ogValidateMembers()" style="font-size:11px;padding:4px 10px">Validate</button>
+              </div>
+              <div id="og-members-validation" style="display:none;margin-top:8px;font-size:12px;display:flex;flex-direction:column;gap:4px"></div>
+            </div>
+          </div>
+
+          <!-- Step 2: Slurm -->
+          <div class="ob-panel" data-step="2">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Slurm Account</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Slurm Account</label>
+                <select id="og-slurm-account" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+                <div style="margin-top:8px">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="og-create-account" onchange="document.getElementById('og-new-account-row').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)">
+                    <span style="font-size:13px;color:var(--muted)">Create new Slurm account</span>
+                  </label>
+                </div>
+                <div id="og-new-account-row" style="display:none;margin-top:8px">
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">New Account Name</label>
+                  <input type="text" id="og-new-account-name" placeholder="e.g. research_arnon"
+                    style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Default QoS</label>
+                <select id="og-defqos" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Extra QoS</label>
+              <div id="og-extra-qos" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+          </div>
+
+          <!-- Step 3: Storage -->
+          <div class="ob-panel" data-step="3">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Storage Quotas (per user)</div>
+            <div style="margin-bottom:14px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="og-set-quota" onchange="document.getElementById('og-quota-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)">
+                <span style="font-size:13px">Set per-user ZFS quotas (slow for large groups)</span>
+              </label>
+            </div>
+            <div id="og-quota-fields" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-a)</label>
+                  <div id="og-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-b)</label>
+                  <div id="og-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Skel -->
+          <div class="ob-panel" data-step="4">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Skel Profile</div>
+            <div style="margin-bottom:6px;font-size:13px;color:var(--muted)">Optionally apply a skel profile to each member's home directory. Only applied if the home directory already exists.</div>
+            <div id="og-skel-options" style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
+              <div class="ob-check-item"><input type="radio" id="og-skel-none" name="og-skel" value="" checked><label for="og-skel-none">None</label></div>
+            </div>
+          </div>
+
+          <!-- Step 5: Review -->
+          <div class="ob-panel" data-step="5">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Review &amp; Confirm</div>
+            <div id="og-review" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px"></div>
+            <button class="sync-btn" id="og-run-btn" onclick="runOnboardGroup()" style="background:var(--accent);border-color:var(--accent);color:#fff">Run Group Onboarding</button>
+          </div>
+
+          <!-- Step 6: Results -->
+          <div class="ob-panel" data-step="6">
+            <div id="og-result-banner" style="padding:12px 16px;border-radius:var(--radius);font-weight:600;font-size:14px;margin-bottom:14px"></div>
+            <div id="og-result-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            <button class="sync-btn secondary" onclick="obResetWizard()" style="margin-top:16px">Start Over</button>
+          </div>
+        </div>
+
+        <!-- ── OFFBOARD USER ── -->
+        <div id="ob-wizard-offboard-user" class="ob-wizard" style="display:none">
+          <div class="ob-panel active" data-step="0">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Look Up User</div>
+            <div style="display:flex;gap:8px;margin-bottom:14px">
+              <input type="text" id="fu-username" placeholder="username" autocomplete="off"
+                onkeydown="if(event.key==='Enter')obLookupUser()"
+                style="width:100%;max-width:300px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
+              <button class="sync-btn secondary" onclick="obLookupUser()">Look Up</button>
+            </div>
+            <div id="fu-lookup-result" style="display:none;background:var(--surface);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--muted)"></div>
+          </div>
+          <div class="ob-panel" data-step="1">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">What to Remove</div>
+            <div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.25);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:#fca5a5">⚠ These actions are irreversible. Review carefully.</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);margin-bottom:14px;cursor:pointer" onclick="document.getElementById('fu-disable-only').click()">
+              <input type="checkbox" id="fu-disable-only" style="accent-color:var(--warn);width:15px;height:15px">
+              <label for="fu-disable-only" style="cursor:pointer;font-size:13px"><b>Soft disable only</b> — block submissions (MaxSubmitJobs=0), don't remove accounts</label>
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AD Groups to Remove From</label>
+              <div id="fu-ad-groups" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Slurm Accounts to Remove From</label>
+              <div id="fu-slurm-accounts" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+          </div>
+          <div class="ob-panel" data-step="2">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Review &amp; Confirm</div>
+            <div id="fu-review" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px"></div>
+            <button class="sync-btn" id="fu-run-btn" onclick="runOffboardUser()" style="background:var(--danger);border-color:var(--danger);color:#fff">Confirm Offboarding</button>
+          </div>
+          <div class="ob-panel" data-step="3">
+            <div id="fu-result-banner" style="padding:12px 16px;border-radius:var(--radius);font-weight:600;font-size:14px;margin-bottom:14px"></div>
+            <div id="fu-result-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            <button class="sync-btn secondary" onclick="obResetWizard()" style="margin-top:16px">Start Over</button>
+          </div>
+        </div>
+
+        <!-- ── OFFBOARD GROUP ── -->
+        <div id="ob-wizard-offboard-group" class="ob-wizard" style="display:none">
+          <div class="ob-panel active" data-step="0">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Select Group &amp; Account</div>
+            <div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.25);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:#fca5a5">⚠ ALL members of the selected group will be removed from Slurm.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AD Group</label>
+                <select id="fg-ad-group" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Slurm Account to Remove From</label>
+                <select id="fg-slurm-account" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+              </div>
+            </div>
+          </div>
+          <div class="ob-panel" data-step="1">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Review &amp; Confirm</div>
+            <div id="fg-review" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px"></div>
+            <button class="sync-btn" id="fg-run-btn" onclick="runOffboardGroup()" style="background:var(--danger);border-color:var(--danger);color:#fff">Confirm Group Offboarding</button>
+          </div>
+          <div class="ob-panel" data-step="2">
+            <div id="fg-result-banner" style="padding:12px 16px;border-radius:var(--radius);font-weight:600;font-size:14px;margin-bottom:14px"></div>
+            <div id="fg-result-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            <button class="sync-btn secondary" onclick="obResetWizard()" style="margin-top:16px">Start Over</button>
+          </div>
+        </div>
+
+        <!-- Nav buttons -->
+        <div id="ob-nav" style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"></div>
+
+      </div><!-- /padding -->
+    </div><!-- /wizard card -->
+  </div><!-- /pane-onboarding -->
+  </div><!-- main-content -->
+</div><!-- main-wrapper -->
+
+<script>
+  // ── Onboarding globals (must be at top to avoid TDZ) ──
+  var obMeta = null;
+  var obMode = 'onboard-user';
+  var obInitDone = false;
+  var OB_MODES = {
+    'onboard-user':   { steps: ['Identity','Groups & Slurm','Storage','Skel','Review','Done'],       prefix: 'ou' },
+    'onboard-group':  { steps: ['Group Name','Members','Slurm','Storage','Skel','Review','Done'],    prefix: 'og' },
+    'offboard-user':  { steps: ['Look Up','Configure','Review','Done'],                              prefix: 'fu' },
+    'offboard-group': { steps: ['Configure','Review','Done'],                                        prefix: 'fg' },
+  };
+
+  let templatesData=[], activeOutputJobId=null, outputPollInterval=null;
+  let activeTab='automation', inventoryLoaded=false, groupsLoaded=false;
+
+  function ts(){
+    const t=`Updated ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    const el=document.getElementById('last-updated');if(el)el.textContent=t;
+    const el2=document.getElementById('last-updated-top');if(el2)el2.textContent=t;
+  }
+
+  function switchTab(tab,btn){
+    activeTab=tab;
+    window.location.hash=tab;
+    document.querySelectorAll('.sb-sub-item[id^="atab-"]').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`pane-${tab}`).classList.add('active');
+    if(tab==='inventory'&&!inventoryLoaded) loadInventory();
+    if(tab==='onboarding') obInit();
+    if(tab==='addhost'&&!groupsLoaded) loadGroupsForForm();
+  }
+
+  function refreshActive(){
+    const btn=document.getElementById('refresh-btn'); btn.classList.add('spinning');
+    const done=()=>{btn.classList.remove('spinning');ts();};
+    if(activeTab==='automation') Promise.all([loadTemplates(),loadRecentJobs()]).then(done);
+    else if(activeTab==='inventory'){inventoryLoaded=false;loadInventory();done();}
+    else done();
+  }
+
+  function statusBadge(status){
+    const cls=`s-${status}`;
+    const labels={successful:'Successful',failed:'Failed',running:'Running',pending:'Pending',canceled:'Canceled'};
+    return `<span class="status-badge ${cls}"><span class="dot"></span>${labels[status]||status}</span>`;
+  }
+
+  function fmtDuration(started,finished){
+    if(!started) return '—';
+    const s=new Date(started),f=finished?new Date(finished):new Date();
+    const sec=Math.round((f-s)/1000);
+    if(sec<60) return `${sec}s`;
+    if(sec<3600) return `${Math.floor(sec/60)}m ${sec%60}s`;
+    return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+  }
+
+  function fmtTime(iso){
+    if(!iso) return '—';
+    return new Date(iso).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+
+  // ── TEMPLATES ──────────────────────────────────────────────────────────
+  const GROUP_META={
+    gpu:  {label:'🎮 GPU Node Install',  sub:'Run steps in order on the target node',color:'#eff6ff'},
+    cpu:  {label:'⚙️ CPU Node Install',  sub:'Run steps in order on the target node',color:'#f0fdf4'},
+    maint:{label:'🔧 Maintenance',        sub:'Cluster-wide operations',              color:'#fffbeb'},
+  };
+
+  async function loadTemplates(){
+    try{
+      const data=await fetch(BASE+'/api/awx/templates').then(r=>r.json());
+      templatesData=data.templates||[];
+      const groups={};
+      templatesData.forEach(t=>{const g=t.group||'maint';if(!groups[g])groups[g]=[];groups[g].push(t);});
+      let html='';
+      ['gpu','cpu','maint'].forEach(gkey=>{
+        const items=groups[gkey];if(!items||!items.length) return;
+        const meta=GROUP_META[gkey]||{label:gkey,sub:'',color:'var(--bg)'};
+        const isSteps=items.some(t=>t.step>0);
+        const sharedLimitId=`limit-group-${gkey}`;
+        html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div><div style="font-size:14px;font-weight:700">${meta.label}</div><div style="font-size:12px;color:var(--muted)">${meta.sub}</div></div>
+            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. demo-node12)" style="width:220px"></div>`:''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+            ${items.map((t,i)=>`<div style="padding:16px 20px;${i<items.length-1?'border-right:1px solid var(--border)':''}">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                ${t.step>0?`<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;flex-shrink:0">${t.step}</span>`:''}
+                <div><div style="font-size:13px;font-weight:600">${t.step>0?t.name.split(':')[1]?.trim()||t.name:t.name}</div><div style="font-size:12px;color:var(--muted)">${t.desc}</div></div>
+              </div>
+              ${!isSteps&&t.ask_limit?`<input class="limit-input" id="limit-${t.id}" type="text" placeholder="hostname" style="width:100%;margin-bottom:8px">`:''}
+              ${!isSteps&&!t.ask_limit?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Runs cluster-wide</div>`:''}
+              <button class="launch-btn" id="btn-${t.id}" onclick="launchJob(${t.id},'${sharedLimitId}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                ${t.step>0?'Run Step '+t.step:'Launch'}
+              </button>
+              <div class="tc-result" id="result-${t.id}"></div>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      });
+      document.getElementById('templates-grid').innerHTML=html;
+    }catch(e){document.getElementById('templates-grid').innerHTML=`<div style="color:var(--danger);padding:20px">⚠️ ${e.message}</div>`;}
+  }
+
+  async function launchJob(templateId,sharedLimitId){
+    const btn=document.getElementById(`btn-${templateId}`);
+    const res=document.getElementById(`result-${templateId}`);
+    const limitEl=document.getElementById(sharedLimitId||`limit-${templateId}`);
+    const limit=limitEl?limitEl.value.trim():'';
+    const tpl=templatesData.find(t=>t.id===templateId);
+    if(tpl?.ask_limit&&!limit){res.textContent='⚠ Enter a hostname first';res.style.color='var(--danger)';limitEl?.focus();return;}
+    btn.disabled=true;btn.classList.add('spinning');res.textContent='Launching…';res.style.color='var(--muted)';
+    try{
+      const data=await fetch(BASE+'/api/awx/launch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template_id:templateId,limit})}).then(r=>r.json());
+      res.textContent=`✓ Job #${data.job_id} launched — ${data.status}`;res.style.color='var(--ok)';
+      setTimeout(()=>{showJobOutput(data.job_id,`${data.name}${limit?' → '+limit:''}`);loadRecentJobs();},800);
+    }catch(e){res.textContent='⚠ '+e.message;res.style.color='var(--danger)';}
+    finally{btn.disabled=false;btn.classList.remove('spinning');}
+  }
+
+  // ── RECENT JOBS ─────────────────────────────────────────────────────────
+  async function loadRecentJobs(){
+    try{
+      const data=await fetch(BASE+'/api/awx/jobs?limit=20').then(r=>r.json());
+      const jobs=data.jobs||[];
+      document.getElementById('jobs-count').textContent=`${jobs.length} recent`;
+      document.getElementById('jobs-tbody').innerHTML=jobs.map(j=>`
+        <tr onclick="showJobOutput(${j.id},'${j.name}${j.limit?' → '+j.limit:''}')">
+          <td><span class="job-id-link">#${j.id}</span></td>
+          <td style="font-weight:500">${j.name}</td>
+          <td>${statusBadge(j.status)}</td>
+          <td><span class="mono">${j.limit||'<span style="color:var(--muted)">—</span>'}</span></td>
+          <td style="color:var(--muted);font-size:12px">${fmtTime(j.started)}</td>
+          <td class="mono">${fmtDuration(j.started,j.finished)}</td>
+          <td style="color:var(--muted);font-size:12px">${j.launched_by||'—'}</td>
+        </tr>`).join('');
+      ts();
+      if(activeOutputJobId){
+        const running=jobs.find(j=>j.id===activeOutputJobId&&j.status==='running');
+        if(!running&&outputPollInterval){clearInterval(outputPollInterval);outputPollInterval=null;}
+      }
+    }catch(e){document.getElementById('jobs-tbody').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
+  }
+
+  // ── OUTPUT ─────────────────────────────────────────────────────────────
+  async function showJobOutput(jobId,title){
+    activeOutputJobId=jobId;
+    const panel=document.getElementById('output-panel');
+    panel.style.display='block';
+    document.getElementById('output-title').textContent=`Job #${jobId} — ${title}`;
+    document.getElementById('output-pre').textContent='Loading…';
+    document.getElementById('output-status-badge').innerHTML='';
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    await refreshOutput();
+    if(outputPollInterval) clearInterval(outputPollInterval);
+    const jobData=await fetch(`${BASE}/api/awx/job/${jobId}`).then(r=>r.json());
+    document.getElementById('output-status-badge').innerHTML=statusBadge(jobData.status);
+    if(jobData.status==='running'||jobData.status==='pending'){
+      outputPollInterval=setInterval(async()=>{
+        await refreshOutput();
+        const jd=await fetch(`${BASE}/api/awx/job/${jobId}`).then(r=>r.json());
+        document.getElementById('output-status-badge').innerHTML=statusBadge(jd.status);
+        if(jd.status!=='running'&&jd.status!=='pending'){clearInterval(outputPollInterval);outputPollInterval=null;loadRecentJobs();}
+      },3000);
+    }
+  }
+
+  async function refreshOutput(){
+    if(!activeOutputJobId) return;
+    try{
+      const data=await fetch(`${BASE}/api/awx/job/${activeOutputJobId}/output`).then(r=>r.json());
+      const pre=document.getElementById('output-pre');
+      pre.textContent=data.output||'(no output yet)';
+      pre.closest('.output-body').scrollTop=pre.closest('.output-body').scrollHeight;
+    }catch(e){document.getElementById('output-pre').textContent='Error: '+e.message;}
+  }
+
+  // ── INVENTORY ──────────────────────────────────────────────────────────
+  function toggleAddHostForm(){
+    const el=document.getElementById('add-host-inline');
+    const btn=document.getElementById('add-host-toggle-btn');
+    const visible=el.style.display!=='none';
+    el.style.display=visible?'none':'block';
+    btn.textContent=visible?'➕ Add Host':'✕ Cancel';
+    if(!visible && !groupsLoaded) loadGroupsForForm();
+    if(!visible) setTimeout(()=>document.getElementById('ah-hostname').focus(),100);
+  }
+
+  async function loadInventory(){
+    if(inventoryLoaded) return;
+    const el=document.getElementById('inventory-content');
+    el.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted)">Loading inventory…</div>';
+    try{
+      const data=await fetch(BASE+'/api/awx/inventory').then(r=>r.json());
+      const groups=data.groups||[];
+      if(!groups.length){el.innerHTML='<div style="padding:40px;color:var(--muted)">No groups found.</div>';return;}
+      el.innerHTML=groups.map(g=>`
+        <div class="inv-group">
+          <div class="inv-group-header">
+            <span class="inv-group-name">${g.name}</span>
+            <span class="inv-count">${g.hosts.length} host${g.hosts.length!==1?'s':''}</span>
+          </div>
+          ${g.hosts.length?`<table class="inv-table">
+            <thead><tr><th>Hostname</th><th>Description</th><th>Groups</th><th>Status</th><th></th></tr></thead>
+            <tbody>${g.hosts.map(h=>`<tr>
+              <td><span class="mono" style="font-weight:600">${h.name}</span></td>
+              <td style="color:var(--muted);font-size:12px">${h.description||'—'}</td>
+              <td style="font-size:12px">${h.groups.join(', ')||'—'}</td>
+              <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+                <span style="width:7px;height:7px;border-radius:50%;background:${h.enabled?'var(--ok)':'var(--muted)'};display:inline-block"></span>
+                ${h.enabled?'Enabled':'Disabled'}
+              </span></td>
+              <td><button class="remove-host-btn" onclick="removeHost(${h.id},'${h.name}')">Remove</button></td>
+            </tr>`).join('')}</tbody>
+          </table>`:`<div style="padding:16px 20px;font-size:13px;color:var(--muted)">No hosts in this group.</div>`}
+        </div>`).join('');
+      inventoryLoaded=true;ts();
+    }catch(e){el.innerHTML=`<div style="padding:40px;color:var(--danger)">⚠️ ${e.message}</div>`;}
+  }
+
+  async function removeHost(hostId,hostname){
+    if(!confirm(`Remove '${hostname}' from inventory?`)) return;
+    try{
+      const data=await fetch(BASE+'/api/awx/inventory/remove-host',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host_id:hostId,hostname})}).then(r=>r.json());
+      if(data.ok){inventoryLoaded=false;loadInventory();}
+      else alert('Error: '+(data.error||'Unknown'));
+    }catch(e){alert('Error: '+e.message);}
+  }
+
+  // ── ADD HOST ──────────────────────────────────────────────────────────
+  async function loadGroupsForForm(){
+    try{
+      const data=await fetch(BASE+'/api/awx/inventory/groups').then(r=>r.json());
+      document.getElementById('ah-groups').innerHTML=data.groups.map(g=>`
+        <label class="group-cb-label">
+          <input type="checkbox" value="${g.id}"> ${g.name}
+        </label>`).join('');
+      groupsLoaded=true;
+    }catch(e){document.getElementById('ah-groups').innerHTML=`<span style="color:var(--danger)">⚠ ${e.message}</span>`;}
+  }
+
+  async function submitAddHost(){
+    const hostname=document.getElementById('ah-hostname').value.trim();
+    const res=document.getElementById('ah-result');
+    const btn=document.getElementById('ah-submit-btn');
+    if(!hostname){res.textContent='⚠ Enter a hostname';res.style.color='var(--danger)';return;}
+    const groupIds=[...document.querySelectorAll('#ah-groups input:checked')].map(cb=>parseInt(cb.value));
+    btn.disabled=true;res.textContent='Adding…';res.style.color='var(--muted)';
+    try{
+      const data=await fetch(BASE+'/api/awx/inventory/add-host',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          hostname,
+          description:document.getElementById('ah-desc').value.trim(),
+          variables:document.getElementById('ah-vars').value.trim(),
+          group_ids:groupIds
+        })
+      }).then(r=>r.json());
+      if(data.ok){
+        res.textContent=`✓ ${data.msg}`;res.style.color='var(--ok)';
+        document.getElementById('ah-hostname').value='';
+        document.getElementById('ah-desc').value='';
+        document.getElementById('ah-vars').value='';
+        document.querySelectorAll('#ah-groups input').forEach(cb=>cb.checked=false);
+        document.getElementById('add-host-inline').style.display='none';
+        document.getElementById('add-host-toggle-btn').textContent='➕ Add Host';
+        inventoryLoaded=false;
+      } else {res.textContent=`⚠ ${data.error}`;res.style.color='var(--danger)';}
+    }catch(e){res.textContent='⚠ '+e.message;res.style.color='var(--danger)';}
+    finally{btn.disabled=false;}
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────
+  const _validTabs=['automation','inventory','onboarding'];
+  const _hash=window.location.hash.replace('#','');
+  const _initTab=_validTabs.includes(_hash)?_hash:'automation';
+  switchTab(_initTab, document.getElementById(`atab-${_initTab}`));
+
+  loadTemplates();
+  loadRecentJobs();
+  setInterval(loadRecentJobs,15000);
+  // ══════════════════════════════════════════════════════════
+  // ONBOARDING WIZARD
+  // ══════════════════════════════════════════════════════════
+  async function obInit() {
+    if (obInitDone) { obCheckAdWarn(); obSetMode(obMode); return; }
+    obInitDone = true;
+    try {
+      const r = await fetch(BASE+'/api/onboarding/meta');
+      obMeta = await r.json();
+      obPopulateAll();
+      obSetMode('onboard-user');
+      obCheckAdWarn();
+    } catch(e) { console.error('ob init failed', e); }
+  }
+
+  function obCheckAdWarn() {
+    const warn = document.getElementById('ob-ad-warn');
+    if (!warn) return;
+    fetch(BASE+'/api/ad/session').then(r=>r.json()).then(d => {
+      warn.style.display = d.authenticated ? 'none' : 'block';
+    });
+  }
+
+  function obPopulateAll() {
+    const allQos = obMeta.qos_list || [];
+
+    // ou AD groups
+    document.getElementById('ou-ad-groups').innerHTML = obMeta.hpc_parent_groups.map(g=>`
+      <div class="ob-check-item"><input type="checkbox" id="oug-${g}" name="ou-adg" value="${g}" onchange="ouGroupChanged()">
+      <label for="oug-${g}">${g}</label></div>`).join('');
+
+    document.getElementById('ou-slurm-account').innerHTML = obMeta.slurm_accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
+    obFillQosSelects('ou', allQos);
+    obFillQuotaPills('ou-home-quota','ou-home');
+    obFillQuotaPills('ou-proj-quota','ou-proj');
+
+    document.getElementById('og-parent-group').innerHTML = obMeta.hpc_parent_groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+    document.getElementById('og-slurm-account').innerHTML = obMeta.slurm_accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
+    obFillQosSelects('og', allQos);
+    obFillQuotaPills('og-home-quota','og-home');
+    obFillQuotaPills('og-proj-quota','og-proj');
+
+    document.getElementById('fg-ad-group').innerHTML = obMeta.hpc_parent_groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+    document.getElementById('fg-slurm-account').innerHTML = obMeta.slurm_accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
+
+    // skel profiles
+    const skelProfiles = obMeta.skel_profiles || [];
+    ['ou', 'og'].forEach(prefix => {
+      const el = document.getElementById(`${prefix}-skel-options`);
+      const existing = `<div class="ob-check-item"><input type="radio" id="${prefix}-skel-none" name="${prefix}-skel" value="" checked onchange="obSkelChanged('${prefix}')"><label for="${prefix}-skel-none">None</label></div>`;
+      el.innerHTML = existing + skelProfiles.map(p=>`
+        <div class="ob-check-item"><input type="radio" id="${prefix}-skel-${p}" name="${prefix}-skel" value="${p}" onchange="obSkelChanged('${prefix}')">
+        <label for="${prefix}-skel-${p}">${p}</label></div>`).join('');
+    });
+  }
+
+  function obSkelChanged(prefix) {
+    // Nothing extra needed - skel profiles are self-contained
+  }
+
+  async function obAdLogin() {
+    const user = document.getElementById('ob-ad-user').value.trim();
+    const pass = document.getElementById('ob-ad-pass').value;
+    const btn = document.getElementById('ob-ad-login-btn');
+    const status = document.getElementById('ob-ad-login-status');
+    if (!user || !pass) { status.textContent = 'Enter credentials'; return; }
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const r = await fetch(BASE+'/api/ad/auth', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username: user, password: pass})});
+      const d = await r.json();
+      if (d.ok) {
+        document.getElementById('ob-ad-warn').style.display = 'none';
+        document.getElementById('ob-ad-pass').value = '';
+        status.textContent = '';
+      } else {
+        status.style.color = 'var(--danger)';
+        status.textContent = '✗ ' + (d.error || 'Auth failed');
+      }
+    } catch(e) {
+      status.textContent = 'Error: ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Login';
+    }
+  }
+
+  function obFillQosSelects(prefix, allQos) {
+    document.getElementById(`${prefix}-defqos`).innerHTML = allQos.map(q=>`<option value="${q}">${q}</option>`).join('');
+    document.getElementById(`${prefix}-extra-qos`).innerHTML = allQos.map(q=>`
+      <div class="ob-check-item"><input type="checkbox" id="${prefix}-xq-${q}" name="${prefix}-xq" value="${q}">
+      <label for="${prefix}-xq-${q}">${q}</label></div>`).join('');
+  }
+
+  function obFillQuotaPills(elId, name) {
+    document.getElementById(elId).innerHTML = obMeta.quota_presets.map(v=>`
+      <div class="ob-pill"><input type="radio" id="${elId}-${v}" name="${name}" value="${v}" ${v==='none'?'checked':''}>
+      <label for="${elId}-${v}">${v}</label></div>`).join('');
+  }
+
+  function obSetMode(mode) {
+    obMode = mode;
+    document.querySelectorAll('[id^="ob-btn-"]').forEach(b => {
+      const isActive = b.id === `ob-btn-${mode}`;
+      const isOff = mode.startsWith('offboard');
+      b.style.background = isActive ? (isOff ? 'var(--danger)' : 'var(--accent)') : '';
+      b.style.borderColor = isActive ? (isOff ? 'var(--danger)' : 'var(--accent)') : '';
+      b.style.color = isActive ? '#fff' : '';
+    });
+    document.querySelectorAll('.ob-wizard').forEach(w => w.style.display = 'none');
+    document.getElementById(`ob-wizard-${mode}`).style.display = 'block';
+    obGoStep(0);
+  }
+
+  function obResetWizard() { obSetMode(obMode); }
+
+  function obCurrentStep() {
+    const panels = [...document.querySelectorAll(`#ob-wizard-${obMode} .ob-panel`)];
+    return panels.findIndex(p => p.classList.contains('active'));
+  }
+
+  function obGoStep(n) {
+    const panels = [...document.querySelectorAll(`#ob-wizard-${obMode} .ob-panel`)];
+    panels.forEach((p,i) => p.classList.toggle('active', i===n));
+    obRenderProgress();
+    obRenderNav();
+  }
+
+  function obNextStep() {
+    const n = obCurrentStep();
+    if (obValidate(n)) obGoStep(n+1);
+  }
+  function obPrevStep() { obGoStep(obCurrentStep()-1); }
+
+  function obValidate(step) {
+    if (obMode==='onboard-user' && step===0) {
+      const u = document.getElementById('ou-username').value.trim();
+      if (!u) { alert('Enter at least one username.'); return false; }
+      const res = document.getElementById('ou-check-result');
+      if (!res.dataset.found) { alert('Click "Check AD" to verify the users exist.'); return false; }
+      if (res.dataset.found === 'false') { alert('One or more users not found in AD. Cannot continue.'); return false; }
+    }
+    if (obMode==='onboard-group' && step===0) {
+      const name = document.getElementById('og-group-name').value.trim();
+      if (!name) { alert('Enter a group name.'); return false; }
+      const res = document.getElementById('og-check-result');
+      if (res.style.display === 'none' || !res.dataset.action) {
+        alert('Click "Check AD" first to verify the group status.'); return false;
+      }
+      if (res.dataset.action === 'fail') {
+        alert('Cannot continue — group is outside EE scope.'); return false;
+      }
+    }
+    if (obMode==='onboard-group' && step===1) {
+      const members = document.getElementById('og-members').value.trim();
+      if (!members) { alert('Add at least one member.'); return false; }
+    }
+    if (obMode==='onboard-user'   && step===3) obBuildReview('ou');
+    if (obMode==='onboard-group'  && step===4) obBuildReview('og');
+    if (obMode==='offboard-user'  && step===1) obBuildReview('fu');
+    if (obMode==='offboard-group' && step===0) obBuildReview('fg');
+    return true;
+  }
+
+  function obRenderProgress() {
+    const conf = OB_MODES[obMode];
+    const step = obCurrentStep();
+    document.getElementById('ob-steps-bar').innerHTML = conf.steps.map((lbl,i) => {
+      const done = i < step, active = i === step;
+      const conn = i < conf.steps.length-1
+        ? `<div class="ob-connector${done?' done':''}"></div>` : '';
+      return `<div style="display:flex;align-items:center;flex:${i<conf.steps.length-1?1:'none'}">
+        <div class="ob-step-dot ${done?'done':active?'active':''}">${done?'✓':i+1}</div>
+        <span class="ob-step-lbl ${active?'active':''}">${lbl}</span>
+        ${conn}</div>`;
+    }).join('');
+  }
+
+  function obRenderNav() {
+    const conf = OB_MODES[obMode];
+    const step = obCurrentStep();
+    const last = conf.steps.length - 1;
+    const nav = document.getElementById('ob-nav');
+    // result step or review step (action button is inline) — just show Back or nothing
+    const isReview = (
+      (obMode==='onboard-user'   && step===4) ||
+      (obMode==='onboard-group'  && step===5) ||
+      (obMode==='offboard-user'  && step===2) ||
+      (obMode==='offboard-group' && step===1)
+    );
+    if (step===last) { nav.innerHTML=''; return; }
+    if (isReview) {
+      nav.innerHTML = step>0 ? `<button class="sync-btn secondary" onclick="obPrevStep()">← Back</button>` : '';
+      return;
+    }
+    nav.innerHTML = `
+      ${step>0 ? '<button class="sync-btn secondary" onclick="obPrevStep()">← Back</button>' : '<span></span>'}
+      <button class="sync-btn" onclick="obNextStep()" style="background:var(--accent);border-color:var(--accent);color:#fff">Next →</button>`;
+  }
+
+  function ouGroupChanged() {
+    const checked = [...document.querySelectorAll('[name=ou-adg]:checked')].map(c=>c.value);
+    if (!checked.length) return;
+    const d = obMeta.qos_defaults[checked[0]];
+    if (!d) return;
+    document.getElementById('ou-slurm-account').value = d.account;
+    document.getElementById('ou-defqos').value = d.defqos;
+    document.querySelectorAll('[name=ou-xq]').forEach(cb => cb.checked = d.extra_qos.includes(cb.value));
+    const qd = obMeta.quota_defaults[checked[0]];
+    if (qd) {
+      const h = document.querySelector(`[name=ou-home][value="${qd.home}"]`);
+      if(h) h.checked=true;
+      const p = document.querySelector(`[name=ou-proj][value="${qd.projects}"]`);
+      if(p) p.checked=true;
+    }
+  }
+
+  async function ouCheckUser() {
+    const raw = document.getElementById('ou-username').value.trim();
+    if (!raw) { alert('Enter at least one username.'); return; }
+    const usernames = raw.split('\n').map(u=>u.trim()).filter(Boolean);
+    const btn = document.getElementById('ou-check-btn');
+    const res = document.getElementById('ou-check-result');
+    btn.disabled = true; btn.textContent = 'Checking…';
+    res.style.display = 'block'; res.dataset.found = '';
+    let allOk = true;
+    const rows = [];
+    for (const username of usernames) {
+      try {
+        const r = await fetch(BASE+'/api/onboarding/check-user', {method:'POST',
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify({username})});
+        const d = await r.json();
+        if (!d.exists) allOk = false;
+        rows.push(`<div style="display:flex;gap:8px;align-items:center;padding:4px 0">
+          <span style="font-family:monospace;min-width:140px">${username}</span>
+          <span style="color:${d.exists?'var(--ok)':'var(--danger)'}">${d.exists?'✓ Found':'✗ Not found'}</span>
+          ${d.exists&&d.message?`<span style="font-size:12px;color:var(--muted)">${d.message}</span>`:''}
+        </div>`);
+      } catch(e) {
+        allOk = false;
+        rows.push(`<div style="color:var(--danger);padding:4px 0">${username}: check failed</div>`);
+      }
+    }
+    res.dataset.found = String(allOk);
+    res.style.cssText = `display:block;padding:10px 14px;border-radius:var(--radius);border:1px solid ${allOk?'var(--ok)':'var(--danger)'};background:${allOk?'var(--ok-bg)':'var(--danger-bg)'};font-size:13px;margin-top:8px`;
+    res.innerHTML = rows.join('');
+    btn.disabled = false; btn.textContent = 'Check AD';
+  }
+
+  async function ogCheckGroup() {
+    const name = document.getElementById('og-group-name').value.trim();
+    if (!name) { alert('Enter a group name first.'); return; }
+    const btn = document.getElementById('og-check-btn');
+    const res = document.getElementById('og-check-result');
+    btn.disabled = true; btn.textContent = 'Checking…';
+    res.style.display = 'block';
+    res.textContent = 'Querying AD…';
+    res.dataset.action = '';
+    try {
+      const r = await fetch(BASE+'/api/onboarding/check-group', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify({group_name: name})});
+      if (r.status === 401) {
+        res.style.cssText = 'display:block;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);font-size:13px;margin-top:8px';
+        res.textContent = '⚠ Not authenticated to AD. Go to AD Accounts tab and log in first.';
+        res.dataset.action = 'fail';
+        return;
+      }
+      const d = await r.json();
+      res.dataset.action = d.action;
+      const colors = {
+        proceed: 'border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok)',
+        move:    'border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn)',
+        create:  'border:1px solid var(--accent);background:var(--accent-lt);color:var(--accent)',
+        fail:    'border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger)',
+      };
+      const icons = { proceed:'✓', move:'→', create:'＋', fail:'✗' };
+      res.style.cssText = `display:block;padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:8px;${colors[d.action]||''}`;
+      res.textContent = `${icons[d.action]||''} ${d.message}`;
+      // Auto-populate members if group exists
+      if (d.action === 'proceed' || d.action === 'move') {
+        try {
+          const mr = await fetch(BASE+`/api/ad/group/${name}/members`);
+          const md = await mr.json();
+          if (md.members && md.members.length) {
+            document.getElementById('og-members').value = md.members.join('\n');
+            res.textContent += ` — ${md.members.length} existing members loaded`;
+          }
+        } catch(e) { /* ignore, members just stay empty */ }
+      }
+    } catch(e) {
+      res.textContent = 'Check failed: ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Check AD';
+    }
+  }
+
+  async function ogValidateMembers() {
+    const raw = document.getElementById('og-members').value.trim();
+    if (!raw) return;
+    const usernames = raw.split('\n').map(u=>u.trim()).filter(Boolean);
+    const el = document.getElementById('og-members-validation');
+    el.style.display = 'flex';
+    el.innerHTML = '<div style="color:var(--muted)">Validating…</div>';
+    try {
+      const r = await fetch(BASE+'/api/onboarding/validate-members', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify({usernames})});
+      const d = await r.json();
+      el.innerHTML = d.results.map(u=>`
+        <div style="display:flex;gap:8px;align-items:center;font-size:12px">
+          <span style="color:${u.exists?'var(--ok)':'var(--danger)'}">${u.exists?'✓':'✗'}</span>
+          <span style="font-family:monospace">${u.username}</span>
+          ${!u.exists ? '<span style="color:var(--danger)">not found in AD</span>' : ''}
+        </div>`).join('');
+    } catch(e) { el.innerHTML = '<div style="color:var(--danger)">Validation failed</div>'; }
+  }
+
+  async function obLookupUser() {
+    const username = document.getElementById('fu-username').value.trim();
+    if (!username) return;
+    const res = document.getElementById('fu-lookup-result');
+    res.style.display='block'; res.textContent='Looking up…';
+    try {
+      const r = await fetch(BASE+'/api/onboarding/lookup-user', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify({username})});
+      const d = await r.json();
+      const adAuth = await fetch(BASE+'/api/ad/session').then(r=>r.json());
+      document.getElementById('fu-ad-groups').innerHTML = adAuth.authenticated && d.ad_groups.length
+        ? d.ad_groups.map(g=>`<div class="ob-check-item"><input type="checkbox" id="fu-ag-${g}" name="fu-adg" value="${g}" checked>
+            <label for="fu-ag-${g}">${g}</label></div>`).join('')
+        : `<div style="color:var(--muted);font-size:12px">${adAuth.authenticated?'No HPC group memberships found.':'Authenticate in AD Accounts tab to manage groups.'}</div>`;
+      document.getElementById('fu-slurm-accounts').innerHTML = d.slurm_assoc.length
+        ? d.slurm_assoc.map(a=>`<div class="ob-check-item"><input type="checkbox" id="fu-sa-${a.account}" name="fu-sa" value="${a.account}" checked>
+            <label for="fu-sa-${a.account}">${a.account}</label><span class="ob-badge">${a.defqos}</span></div>`).join('')
+        : `<div style="color:var(--muted);font-size:12px">No Slurm accounts found.</div>`;
+      res.innerHTML = `Found: <b style="color:var(--text)">${d.ad_groups.length}</b> AD group(s), <b style="color:var(--text)">${d.slurm_assoc.length}</b> Slurm account(s)`;
+    } catch(e) { res.textContent='Lookup failed: '+e.message; }
+  }
+
+  function obBuildReview(prefix) {
+    let rows = [];
+    if (prefix==='ou') {
+      rows = [
+        ['Username(s)', document.getElementById('ou-username').value.trim().split('\n').map(u=>u.trim()).filter(Boolean).join(', ')],
+        ['AD Groups', [...document.querySelectorAll('[name=ou-adg]:checked')].map(c=>c.value).join(', ')||'(none)'],
+        ['Slurm Account', document.getElementById('ou-slurm-account').value],
+        ['Default QoS', document.getElementById('ou-defqos').value],
+        ['Extra QoS', [...document.querySelectorAll('[name=ou-xq]:checked')].map(c=>c.value).join(', ')||'(none)'],
+        ['Home Quota', document.getElementById('ou-set-quota').checked ? (document.querySelector('[name=ou-home]:checked')?.value||'none') : '(not setting)'],
+        ['Projects Quota', document.getElementById('ou-set-quota').checked ? (document.querySelector('[name=ou-proj]:checked')?.value||'none') : '(not setting)'],
+        ['Skel Profile', document.querySelector('[name=ou-skel]:checked')?.value || '(none)'],
+      ];
+    } else if (prefix==='og') {
+      const members = document.getElementById('og-members').value.trim().split('\n').map(u=>u.trim()).filter(Boolean);
+      rows = [
+        ['Group Name', document.getElementById('og-group-name').value.trim()],
+        ['AD Action', document.getElementById('og-check-result').dataset.action || '?'],
+        ['Parent Group', document.getElementById('og-parent-group').value],
+        ['Members', `${members.length} users`],
+        ['Slurm Account', document.getElementById('og-slurm-account').value],
+        ['Default QoS', document.getElementById('og-defqos').value],
+        ['Extra QoS', [...document.querySelectorAll('[name=og-xq]:checked')].map(c=>c.value).join(', ')||'(none)'],
+        ['Per-User Quotas', document.getElementById('og-set-quota').checked ? `home=${document.querySelector('[name=og-home]:checked')?.value||'none'}, projects=${document.querySelector('[name=og-proj]:checked')?.value||'none'}` : '(not setting)'],
+        ['Skel Profile', document.querySelector('[name=og-skel]:checked')?.value || '(none)'],
+      ];
+    } else if (prefix==='fu') {
+      rows = [
+        ['Username', document.getElementById('fu-username').value.trim()],
+        ['AD Groups', [...document.querySelectorAll('[name=fu-adg]:checked')].map(c=>c.value).join(', ')||'(none)'],
+        ['Slurm Action', document.getElementById('fu-disable-only').checked ? 'Disable (MaxSubmitJobs=0)' : `Remove from: ${[...document.querySelectorAll('[name=fu-sa]:checked')].map(c=>c.value).join(', ')||'(none)'}`],
+      ];
+    } else if (prefix==='fg') {
+      rows = [
+        ['AD Group', document.getElementById('fg-ad-group').value],
+        ['Remove From', document.getElementById('fg-slurm-account').value],
+        ['Warning', 'ALL members will be removed from Slurm account'],
+      ];
+    }
+    document.getElementById(`${prefix}-review`).innerHTML = rows.map(([k,v])=>`
+      <div class="ob-review-row"><div class="ob-review-key">${k}</div><div class="ob-review-val">${v}</div></div>`).join('');
+  }
+
+  function obShowResults(prefix, data, target, verb, doneStep) {
+    const banner = document.getElementById(`${prefix}-result-banner`);
+    banner.style.cssText = `padding:12px 16px;border-radius:var(--radius);font-weight:600;font-size:14px;margin-bottom:14px;${data.ok?'background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok)':'background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)'}`;
+    banner.textContent = data.ok ? `✓ ${target} successfully ${verb}` : `⚠ ${target} ${verb} with errors`;
+    document.getElementById(`${prefix}-result-list`).innerHTML = (data.steps||[]).map(s=>`
+      <div class="ob-result-item ${s.ok?'ok':'fail'}">
+        <div style="font-size:14px;flex-shrink:0">${s.ok?'✓':'✗'}</div>
+        <div class="ob-result-label">${s.label}</div>
+        <div style="font-size:13px">${s.msg}</div>
+      </div>`).join('');
+    obGoStep(doneStep);
+  }
+
+  function obSetRunning(btn, label) { btn.disabled=true; btn.innerHTML=`<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span>${label}`; }
+  function obResetBtn(btn, label) { btn.disabled=false; btn.innerHTML=label; }
+
+  async function runOnboardUser() {
+    const btn = document.getElementById('ou-run-btn');
+    obSetRunning(btn,'Onboarding…');
+    const usernames = document.getElementById('ou-username').value.trim().split('\n').map(u=>u.trim()).filter(Boolean);
+    const payload = {
+      ad_groups: [...document.querySelectorAll('[name=ou-adg]:checked')].map(c=>c.value),
+      slurm_account: document.getElementById('ou-slurm-account').value,
+      slurm_defqos: document.getElementById('ou-defqos').value,
+      slurm_extra_qos: [...document.querySelectorAll('[name=ou-xq]:checked')].map(c=>c.value),
+      set_quota: document.getElementById('ou-set-quota').checked,
+      home_quota: document.querySelector('[name=ou-home]:checked')?.value||'none',
+      projects_quota: document.querySelector('[name=ou-proj]:checked')?.value||'none',
+      skel_profile: document.querySelector('[name=ou-skel]:checked')?.value||'',
+      skel_group: [...document.querySelectorAll('[name=ou-adg]:checked')].map(c=>c.value)[0]||'',
+    };
+    try {
+      // Run all users in sequence, collect results
+      const allResults = [];
+      for (const username of usernames) {
+        const isLast = username === usernames[usernames.length - 1];
+        const r = await fetch(BASE+'/api/onboarding/onboard-user', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username, ...payload, skip_refresh: !isLast})});
+        const d = await r.json();
+        allResults.push({username, steps: d.steps||[]});
+      }
+      // Single refresh after all users done
+      if (usernames.length > 1) {
+        const rr = await fetch(BASE+'/api/onboarding/onboard-user-bulk-refresh', {method:'POST'});
+        const rd = await rr.json();
+        allResults.push({username: '__refresh__', steps: rd.steps||[]});
+      }
+      // Show combined results
+      const combined = { steps: allResults.flatMap(u => u.steps.map(s=>({...s, label: `[${u.username}] ${s.label}`}))) };
+      combined.ok = combined.steps.every(s => s.ok);
+      obShowResults('ou', combined, usernames.join(', '), 'onboarded', 5);
+    } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Run Onboarding');}
+  }
+
+  async function runOnboardGroup() {
+    const btn = document.getElementById('og-run-btn');
+    obSetRunning(btn,'Processing…');
+    const members = document.getElementById('og-members').value.trim().split('\n').map(u=>u.trim()).filter(Boolean);
+    try {
+      const r = await fetch(BASE+'/api/onboarding/onboard-group', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        group_name: document.getElementById('og-group-name').value.trim(),
+        parent_group: document.getElementById('og-parent-group').value,
+        members: members,
+        slurm_account: document.getElementById('og-slurm-account').value,
+        create_slurm_account: document.getElementById('og-create-account').checked,
+        new_slurm_account_name: document.getElementById('og-new-account-name').value.trim(),
+        slurm_defqos: document.getElementById('og-defqos').value,
+        slurm_extra_qos: [...document.querySelectorAll('[name=og-xq]:checked')].map(c=>c.value),
+        set_quota: document.getElementById('og-set-quota').checked,
+        home_quota: document.querySelector('[name=og-home]:checked')?.value||'none',
+        projects_quota: document.querySelector('[name=og-proj]:checked')?.value||'none',
+        skel_profile: document.querySelector('[name=og-skel]:checked')?.value||'',
+      })});
+      obShowResults('og', await r.json(), document.getElementById('og-group-name').value.trim(), 'onboarded', 6);
+    } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Run Group Onboarding');}
+  }
+
+  async function runOffboardUser() {
+    const btn = document.getElementById('fu-run-btn');
+    obSetRunning(btn,'Offboarding…');
+    try {
+      const r = await fetch(BASE+'/api/onboarding/offboard-user', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        username: document.getElementById('fu-username').value.trim(),
+        ad_groups: [...document.querySelectorAll('[name=fu-adg]:checked')].map(c=>c.value),
+        slurm_accounts: [...document.querySelectorAll('[name=fu-sa]:checked')].map(c=>c.value),
+        disable_only: document.getElementById('fu-disable-only').checked,
+      })});
+      obShowResults('fu', await r.json(), document.getElementById('fu-username').value.trim(), 'offboarded', 3);
+    } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Confirm Offboarding');}
+  }
+
+  async function runOffboardGroup() {
+    const btn = document.getElementById('fg-run-btn');
+    obSetRunning(btn,'Processing…');
+    try {
+      const r = await fetch(BASE+'/api/onboarding/offboard-group', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        ad_group: document.getElementById('fg-ad-group').value,
+        slurm_account: document.getElementById('fg-slurm-account').value,
+      })});
+      obShowResults('fg', await r.json(), document.getElementById('fg-ad-group').value, 'offboarded', 2);
+    } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Confirm Group Offboarding');}
+  }
+
+</script>
+
+<script>
+(function(){
+  var KEY='hpc_sidebar_collapsed';
+  function applyState(collapsed,animate){
+    var sb=document.querySelector('.site-sidebar');
+    var mw=document.querySelector('.main-wrapper');
+    var btn=document.getElementById('sb-collapse-btn');
+    if(!sb||!mw||!btn)return;
+    if(!animate){sb.style.transition='none';mw.style.transition='none';}
+    if(collapsed){sb.classList.add('collapsed');mw.classList.add('sidebar-collapsed');btn.textContent='▶';btn.title='Expand sidebar';}
+    else{sb.classList.remove('collapsed');mw.classList.remove('sidebar-collapsed');btn.textContent='◀';btn.title='Collapse sidebar';}
+    if(!animate){setTimeout(function(){sb.style.transition='';mw.style.transition='';},50);}
+  }
+  window.toggleSidebar=function(){
+    var collapsed=!document.querySelector('.site-sidebar').classList.contains('collapsed');
+    localStorage.setItem(KEY,collapsed?'1':'0');
+    applyState(collapsed,true);
+  };
+  // Apply saved state immediately (no animation to avoid flash)
+  applyState(localStorage.getItem(KEY)==='1',false);
+})();
+</script>
+
+</body>
+</html>

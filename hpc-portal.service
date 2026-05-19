@@ -1,0 +1,15 @@
+[Unit]
+Description=HPC Admin Portal
+After=network.target
+
+[Service]
+Type=simple
+User=demo-admin
+WorkingDirectory=/opt/hpc-portal
+ExecStart=/opt/hpc-portal/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
