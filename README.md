@@ -56,25 +56,35 @@ Open:
 
 External integrations require real environment-specific configuration and are intentionally represented with demo placeholders.
 
+
 ## Screenshots
 
-### Slurm Nodes
-![Slurm Nodes](screenshots/admin-portal/01-nodes.png)
+### Storage Filesystems
+![Storage Filesystems](screenshots/admin-portal/01-storage-filesystems.png)
 
-### Jobs
-![Jobs](screenshots/admin-portal/02-jobs.png)
-
-### Config Sync
-![Config Sync](screenshots/admin-portal/03-config-sync.png)
-
-### QoS Policy
-![QoS Policy](screenshots/admin-portal/05-qos-policy.png)
-
-### Storage
-![Storage Filesystems](screenshots/admin-portal/07-storage-filesystems.png)
+### ZFS Quotas
+![ZFS Quotas](screenshots/admin-portal/02-zfs-quotas.png)
 
 ### Automation
-![Automation](screenshots/admin-portal/09-automation.png)
+![Automation](screenshots/admin-portal/03-automation.png)
 
 ### Onboarding
-![Onboarding](screenshots/admin-portal/10-onboarding.png)
+![Onboarding](screenshots/admin-portal/04-onboarding.png)
+
+### Jobs
+![Jobs](screenshots/admin-portal/05-jobs.png)
+
+### Config Sync
+![Config Sync](screenshots/admin-portal/06-config-sync.png)
+
+### AD Accounts
+![AD Accounts](screenshots/admin-portal/07-ad-accounts.png)
+
+### QoS Policy
+![QoS Policy](screenshots/admin-portal/08-qos-policy.png)
+
+### Jobs Alternative View
+![Jobs Alternative View](screenshots/admin-portal/09-jobs-alt.png)
+
+### SMTP Mail System
+![SMTP Mail System](screenshots/admin-portal/10-send-mail.png)
