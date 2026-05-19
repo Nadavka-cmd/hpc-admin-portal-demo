@@ -55,3 +55,26 @@ Open:
 ## Notes
 
 External integrations require real environment-specific configuration and are intentionally represented with demo placeholders.
+
+## Screenshots
+
+### Slurm Nodes
+![Slurm Nodes](screenshots/admin-portal/01-nodes.png)
+
+### Jobs
+![Jobs](screenshots/admin-portal/02-jobs.png)
+
+### Config Sync
+![Config Sync](screenshots/admin-portal/03-config-sync.png)
+
+### QoS Policy
+![QoS Policy](screenshots/admin-portal/05-qos-policy.png)
+
+### Storage
+![Storage Filesystems](screenshots/admin-portal/07-storage-filesystems.png)
+
+### Automation
+![Automation](screenshots/admin-portal/09-automation.png)
+
+### Onboarding
+![Onboarding](screenshots/admin-portal/10-onboarding.png)
