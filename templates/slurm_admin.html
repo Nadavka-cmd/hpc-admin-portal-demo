@@ -559,10 +559,10 @@
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Click Edit to modify QoS limits. Click Assign to add/remove a QoS from a user.</div>
     <div class="table-wrap"><table><thead><tr>
       <th style="padding:8px 14px">QoS Name</th><th style="padding:8px 14px">Priority</th>
-      <th style="padding:8px 14px">Max GPUs/Job</th><th style="padding:8px 14px">Max Jobs</th>
+      <th style="padding:8px 14px">Max GPUs/Job</th><th style="padding:8px 14px">Max GPUs/User</th><th style="padding:8px 14px">Max Jobs</th>
       <th style="padding:8px 14px">Max Wall</th><th style="padding:8px 14px">Max Submit</th>
       <th style="padding:8px 14px">Actions</th>
-    </tr></thead><tbody id="qos-tbody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
+    </tr></thead><tbody id="qos-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
   </div>
 
   <!-- ══ AD ACCOUNTS TAB ══ -->
@@ -763,6 +763,10 @@
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs per Job</label>
           <input id="qos-edit-maxgpu" type="text" placeholder="e.g. 2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs per User</label>
+          <input id="qos-edit-maxgpuuser" type="text" placeholder="e.g. 2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Jobs per User</label>
@@ -1578,6 +1582,7 @@
           <td style="padding:6px 14px"><span class="qos-badge" style="font-size:13px;padding:3px 10px">${q.name}</span></td>
           <td style="padding:6px 14px" class="mono">${q.priority||'—'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_gpus_job||'∞'}</td>
+          <td style="padding:6px 14px" class="mono">${q.max_gpus_user||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_jobs||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_wall||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_submit||'∞'}</td>
@@ -1586,7 +1591,7 @@
             <button class="node-menu-btn" onclick="openQosAssign('${q.name}')" style="font-size:12px;padding:3px 10px;margin-left:4px">Assign</button>
           </td>
         </tr>`).join('');
-    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
+    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
 
 
@@ -1893,6 +1898,7 @@
     document.getElementById('qos-edit-priority').value = q.priority||'';
     document.getElementById('qos-edit-maxwall').value = q.max_wall||'';
     document.getElementById('qos-edit-maxgpu').value = q.max_gpus_job||'';
+    document.getElementById('qos-edit-maxgpuuser').value = q.max_gpus_user||'';
     document.getElementById('qos-edit-maxjobs').value = q.max_jobs||'';
     document.getElementById('qos-edit-maxsubmit').value = q.max_submit||'';
     document.getElementById('qos-edit-result').textContent = '';
@@ -1907,6 +1913,7 @@
       priority: document.getElementById('qos-edit-priority').value.trim(),
       max_wall: document.getElementById('qos-edit-maxwall').value.trim(),
       max_gpus_job: document.getElementById('qos-edit-maxgpu').value.trim(),
+      max_gpus_user: document.getElementById('qos-edit-maxgpuuser').value.trim(),
       max_jobs: document.getElementById('qos-edit-maxjobs').value.trim(),
       max_submit: document.getElementById('qos-edit-maxsubmit').value.trim(),
     };

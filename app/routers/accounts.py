@@ -60,17 +60,22 @@ def _fetch_qos() -> list[dict]:
     for line in out.splitlines():
         p = line.split("|")
         if len(p) >= 7 and p[0].strip():
-            gpus = ""
+            gpus_job = ""
             m = re.search(r"gres/gpu=(\d+)", p[2])
             if m:
-                gpus = m.group(1)
+                gpus_job = m.group(1)
+            gpus_user = ""
+            m2 = re.search(r"gres/gpu=(\d+)", p[3])
+            if m2:
+                gpus_user = m2.group(1)
             result.append({
-                "name":        p[0].strip(),
-                "priority":    p[1].strip(),
-                "max_gpus_job": gpus,
-                "max_wall":    p[4].strip() or "∞",
-                "max_jobs":    p[5].strip() or "∞",
-                "max_submit":  p[6].strip() or "∞",
+                "name":          p[0].strip(),
+                "priority":      p[1].strip(),
+                "max_gpus_job":  gpus_job,
+                "max_gpus_user": gpus_user,
+                "max_wall":      p[4].strip() or "∞",
+                "max_jobs":      p[5].strip() or "∞",
+                "max_submit":    p[6].strip() or "∞",
             })
     return result
 
@@ -241,6 +246,7 @@ class QosEditRequest(_BM):
     priority: _Opt[str] = ""
     max_wall: _Opt[str] = ""
     max_gpus_job: _Opt[str] = ""
+    max_gpus_user: _Opt[str] = ""
     max_jobs: _Opt[str] = ""
     max_submit: _Opt[str] = ""
 
@@ -271,6 +277,11 @@ async def edit_qos(req: QosEditRequest):
         parts.append(f"MaxTRES=gres/gpu={req.max_gpus_job}")
     else:
         parts.append("MaxTRES=")
+
+    if req.max_gpus_user:
+        parts.append(f"MaxTRESPerUser=gres/gpu={req.max_gpus_user}")
+    else:
+        parts.append("MaxTRESPerUser=")
 
     if req.max_jobs:
         parts.append(f"MaxJobsPerUser={req.max_jobs}")
