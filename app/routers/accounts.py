@@ -9,7 +9,7 @@ router = APIRouter()
 SACCTMGR = "/opt/slurm/bin/sacctmgr"
 
 AD_GROUPS = [
-    "hpc_eeadmins", "hpc_research_beta", "hpc_research_alpha", "hpc_researchers",
+    "hpc_eeadmins", "hpc_adrian", "hpc_permuter", "hpc_researchers",
     "hpc_faculty", "hpc_course_students", "hpc_matlab_users",
 ]
 
@@ -341,3 +341,35 @@ async def assign_qos(req: QosAssignRequest):
         return {"ok": True, "msg": f"QoS '{req.qos}' {action_word} {req.user}@{req.account}"}
     except Exception as e:
         return {"ok": False, "msg": str(e)}
+
+
+@router.get("/qos/lookup")
+async def lookup_qos(target: str):
+    """Return QoS assignments for a username or account name."""
+    import re as _re
+    if not _re.match(r'^[\w\-\.]+$', target):
+        raise HTTPException(status_code=400, detail="Invalid target")
+
+    assoc = _fetch_assoc()
+
+    # Try matching as user first
+    rows = [r for r in assoc if r["user"].lower() == target.lower()]
+
+    # Fall back to account match
+    if not rows:
+        rows = [r for r in assoc if r["account"].lower() == target.lower()]
+
+    if not rows:
+        return {"ok": False, "rows": [], "msg": f"No Slurm associations found for '{target}'"}
+
+    result = []
+    for r in rows:
+        qos_list = [q for q in r["qos"].split(",") if q and q != r["defqos"]]
+        result.append({
+            "user":        r["user"],
+            "account":     r["account"],
+            "default_qos": r["defqos"],
+            "other_qos":   qos_list,
+        })
+
+    return {"ok": True, "rows": result, "msg": ""}
