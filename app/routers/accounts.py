@@ -52,7 +52,7 @@ def _fetch_assoc() -> list[dict]:
 
 def _fetch_qos() -> list[dict]:
     rc, out, _ = _run([SACCTMGR, "show", "qos", "-P",
-                       "format=Name,Priority,MaxTRESPerJob,MaxTRESPerUser,MaxWall,MaxJobsPerUser,MaxSubmitJobsPerUser",
+                       "format=Name,Priority,MaxTRESPerJob,MaxTRESPerUser,MaxWall,MaxJobsPerUser,MaxSubmitJobsPerUser,Flags",
                        "--noheader"])
     if rc != 0:
         return []
@@ -76,6 +76,7 @@ def _fetch_qos() -> list[dict]:
                 "max_wall":      p[4].strip() or "∞",
                 "max_jobs":      p[5].strip() or "∞",
                 "max_submit":    p[6].strip() or "∞",
+                "flags":         p[7].strip() if len(p) > 7 else "",
             })
     return result
 

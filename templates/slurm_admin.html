@@ -561,8 +561,9 @@
       <th style="padding:8px 14px">QoS Name</th><th style="padding:8px 14px">Priority</th>
       <th style="padding:8px 14px">Max GPUs/Job</th><th style="padding:8px 14px">Max GPUs/User</th><th style="padding:8px 14px">Max Jobs</th>
       <th style="padding:8px 14px">Max Wall</th><th style="padding:8px 14px">Max Submit</th>
+      <th style="padding:8px 14px">Flags <span title="OverPartQOS: this QoS's limits take precedence over the partition QoS. Without it, partition QoS limits (e.g. MaxJobsPU=2 on 'normal') silently cap the user's QoS limits." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--border);color:var(--muted);font-size:10px;font-weight:700;cursor:default;margin-left:4px;vertical-align:middle">?</span></th>
       <th style="padding:8px 14px">Actions</th>
-    </tr></thead><tbody id="qos-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
+    </tr></thead><tbody id="qos-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
 
     <!-- QoS Lookup Widget -->
     <div style="margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow)">
@@ -1602,12 +1603,22 @@
           <td style="padding:6px 14px" class="mono">${q.max_jobs||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_wall||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_submit||'∞'}</td>
+          <td style="padding:6px 14px">${(()=>{
+            const flags = (q.flags||'').toLowerCase();
+            const hasOPQ = flags.includes('overpartqos');
+            return `<span title="${hasOPQ
+              ? 'OverPartQOS is SET — this QoS\'s limits override the partition QoS'
+              : 'OverPartQOS not set — partition QoS limits take precedence and may silently cap this QoS\'s limits'}"
+              style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${hasOPQ?'var(--ok)':'var(--border)'};background:${hasOPQ?'var(--ok-bg)':'var(--bg)'};color:${hasOPQ?'var(--ok)':'var(--muted)'};font-family:monospace;cursor:default;white-space:nowrap">
+              ${hasOPQ?'✓':'✗'} OverPartQOS
+            </span>`;
+          })()}</td>
           <td style="padding:6px 14px;white-space:nowrap">
             <button class="node-menu-btn" onclick="openQosEdit(${JSON.stringify(q).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
             <button class="node-menu-btn" onclick="openQosAssign('${q.name}')" style="font-size:12px;padding:3px 10px;margin-left:4px">Assign</button>
           </td>
         </tr>`).join('');
-    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
+    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
 
   async function lookupQoS(){
@@ -1622,6 +1633,21 @@
         res.innerHTML=`<span style="color:var(--muted);font-size:13px">No Slurm associations found for <b>${target}</b></span>`;
         return;
       }
+      // Build a flag map from already-loaded qosData
+      const _qosFlagMap = {};
+      (qosData||[]).forEach(q=>{ _qosFlagMap[q.name] = q.flags||''; });
+
+      function _overPartBadge(qname){
+        const flags = _qosFlagMap[qname]||'';
+        const has = flags.toLowerCase().includes('overpartqos');
+        return `<span title="${has
+          ? 'OverPartQOS is SET — this QoS limits override the partition QoS (e.g. allows more jobs than the partition normally permits)'
+          : 'OverPartQOS is NOT set — partition QoS limits take precedence and may cap this QoS\'s limits (e.g. MaxJobsPU)'}"
+          style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${has?'var(--ok)':'var(--border)'};background:${has?'var(--ok-bg)':'var(--bg)'};color:${has?'var(--ok)':'var(--muted)'};font-family:monospace;cursor:default;user-select:none">
+          ${has?'✓':'✗'} OverPartQOS
+        </span>`;
+      }
+
       res.innerHTML = data.rows.map(row => `
         <div style="padding:12px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg)">
           <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
@@ -1631,7 +1657,8 @@
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:11px;color:var(--muted);margin-right:2px">QoS</span>
             <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--accent-lt);color:var(--accent);font-family:monospace;border:1px solid var(--accent)">${row.default_qos} <span style="font-size:10px;font-weight:500;opacity:.7">default</span></span>
-            ${row.other_qos.map(q=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:monospace;color:var(--text)">${q}</span>`).join('')}
+            ${_overPartBadge(row.default_qos)}
+            ${row.other_qos.map(q=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:monospace;color:var(--text)">${q}</span>${_overPartBadge(q)}`).join('')}
           </div>
         </div>`).join('');
     }catch(e){
