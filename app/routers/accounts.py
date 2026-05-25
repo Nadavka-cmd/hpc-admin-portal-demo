@@ -8,11 +8,6 @@ router = APIRouter()
 
 SACCTMGR = "/opt/slurm/bin/sacctmgr"
 
-AD_GROUPS = [
-    "hpc_eeadmins", "hpc_adrian", "hpc_permuter", "hpc_researchers",
-    "hpc_faculty", "hpc_course_students", "hpc_matlab_users",
-]
-
 
 def _run(cmd: list) -> tuple[int, str, str]:
     try:
@@ -230,19 +225,17 @@ async def add_account(req: AddAccountRequest):
     return {"ok": True, "msg": f"Created account '{req.name}'"}
 
 
-from pydantic import BaseModel as _BM
-from typing import Optional as _Opt
 
-class QosEditRequest(_BM):
+class QosEditRequest(BaseModel):
     name: str
-    priority: _Opt[str] = ""
-    max_wall: _Opt[str] = ""
-    max_gpus_job: _Opt[str] = ""
-    max_gpus_user: _Opt[str] = ""
-    max_jobs: _Opt[str] = ""
-    max_submit: _Opt[str] = ""
+    priority: Optional[str] = ""
+    max_wall: Optional[str] = ""
+    max_gpus_job: Optional[str] = ""
+    max_gpus_user: Optional[str] = ""
+    max_jobs: Optional[str] = ""
+    max_submit: Optional[str] = ""
 
-class QosAssignRequest(_BM):
+class QosAssignRequest(BaseModel):
     qos: str
     user: str
     account: str
@@ -251,8 +244,7 @@ class QosAssignRequest(_BM):
 
 @router.post("/qos/edit")
 async def edit_qos(req: QosEditRequest):
-    import re as _re
-    if not _re.match(r'^[\w_\-]+$', req.name):
+    if not re.match(r'^[\w_\-]+$', req.name):
         return {"ok": False, "msg": "Invalid QoS name"}
 
     # Build sacctmgr modify command
@@ -296,9 +288,8 @@ async def edit_qos(req: QosEditRequest):
 
 @router.post("/qos/assign")
 async def assign_qos(req: QosAssignRequest):
-    import re as _re
     for v in [req.qos, req.user, req.account]:
-        if not _re.match(r'^[\w_\-]+$', v):
+        if not re.match(r'^[\w_\-]+$', v):
             return {"ok": False, "msg": f"Invalid value: {v}"}
 
     try:
@@ -338,8 +329,7 @@ async def assign_qos(req: QosAssignRequest):
 @router.get("/qos/lookup")
 async def lookup_qos(target: str):
     """Return QoS assignments for a username or account name."""
-    import re as _re
-    if not _re.match(r'^[\w\-\.]+$', target):
+    if not re.match(r'^[\w\-\.]+$', target):
         raise HTTPException(status_code=400, detail="Invalid target")
 
     assoc = _fetch_assoc()

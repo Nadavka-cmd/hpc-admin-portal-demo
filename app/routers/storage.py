@@ -12,20 +12,20 @@ router = APIRouter()
 
 # ── constants (will move to config.ini later) ──────────────────────────────
 SCRATCH_PATH   = "/scratch"
-PROMETHEUS     = "http://prometheus.example.local:9090"
+PROMETHEUS     = "http://132.72.105.205:9090"
 WARN_DAYS      = 7
 STALE_DAYS     = 30
 SKIP_NAMES     = {"lost+found"}
-SSH_USER       = "demo-admin"
+SSH_USER       = "profadmin"
 SINFO_BIN      = "/opt/slurm/bin/sinfo"
 SQUEUE_BIN     = "/opt/slurm/bin/squeue"
 
-STORAGE_NODES  = ["storage-a", "storage-b"]
-BACKUP_NODES   = ["storage-backup"]
+STORAGE_NODES  = ["truenas2", "truenas3"]
+BACKUP_NODES   = ["truenas1"]
 
 IGNORE_MOUNTS  = {"/boot/efi", "/boot", "/run", "/opt/sentinelone/rpm_mount"}
 IGNORE_FSTYPES = {"tmpfs", "vfat"}
-NFS_MOUNTS     = {"/demo/home", "/demo/sif_images", "/demo/datasets", "/demo/projects"}
+NFS_MOUNTS     = {"/truenas/home", "/truenas/sif_images", "/truenas/datasets", "/truenas/projects"}
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
@@ -323,7 +323,7 @@ def _df_node(node: str) -> dict:
             if len(parts) < 6:
                 continue
             mp = parts[-1]
-            # Normalize double /mnt/mnt/ prefix (storage-backup quirk)
+            # Normalize double /mnt/mnt/ prefix (truenas1 quirk)
             if mp.startswith("/mnt/mnt/"):
                 mp = mp[4:]  # strip leading /mnt -> /mnt/tank1/...
             if not mp.startswith("/mnt/tank"):
@@ -354,7 +354,7 @@ def _df_node(node: str) -> dict:
         arc   = _fetch_arc_stats(node)
         snaps = _fetch_snapshots(node)
         # Fetch replication tasks for backup nodes
-        repls = _fetch_replication_tasks(node) if node in ["storage-backup"] else []
+        repls = _fetch_replication_tasks(node) if node in ["truenas1"] else []
         return {"node": node, "online": True, "error": "", "mounts": mounts,
                 "arc": arc, "snapshots": snaps, "replications": repls}
     except Exception as e:
@@ -475,8 +475,7 @@ def _fetch_replication_tasks(host: str) -> list[dict]:
         if end == -1:
             return []
         json_str = json_str[:end]
-        import json as _json
-        tasks = _json.loads(json_str)
+        tasks = json.loads(json_str)
         result = []
         for t in tasks:
             state = t.get('state', {})
@@ -490,8 +489,7 @@ def _fetch_replication_tasks(host: str) -> list[dict]:
             finished = job.get('time_finished', {})
             if isinstance(finished, dict):
                 ts = finished.get('$date', 0)
-                import datetime
-                last_run = datetime.datetime.fromtimestamp(ts/1000).strftime('%Y-%m-%d %H:%M') if ts else '—'
+                last_run = datetime.fromtimestamp(ts/1000).strftime('%Y-%m-%d %H:%M') if ts else '—'
             else:
                 last_run = '—'
             # Duration

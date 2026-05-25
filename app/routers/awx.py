@@ -2,14 +2,12 @@ import subprocess
 import json
 import re
 from typing import Optional
-from urllib.parse import quote
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter()
 
-AWX_URL = "http://awx.example.local"
+AWX_URL = "http://ee-ansible:30457"
 AWX_TOKEN = None  # loaded from config at startup
 
 INVENTORY_ID = 12  # HPC Cluster V2

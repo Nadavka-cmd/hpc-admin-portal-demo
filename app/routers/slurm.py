@@ -2,6 +2,8 @@ import subprocess
 import re
 from fastapi import APIRouter, HTTPException
 from app import config
+from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter()
 
@@ -111,10 +113,6 @@ async def get_jobs():
     return {"jobs": jobs}
 
 
-from pydantic import BaseModel
-from typing import Optional
-import re as _re
-
 class NodeActionRequest(BaseModel):
     node: str
     action: str
@@ -122,7 +120,7 @@ class NodeActionRequest(BaseModel):
 
 @router.post("/node-action")
 async def node_action(req: NodeActionRequest):
-    if not _re.match(r'^[\w\-\.]+$', req.node):
+    if not re.match(r'^[\w\-\.]+$', req.node):
         raise HTTPException(status_code=400, detail="Invalid node name")
 
     reason = req.reason or "Admin action via HPC Portal"
@@ -148,7 +146,7 @@ async def node_action(req: NodeActionRequest):
 
 @router.post("/scancel-node")
 async def scancel_node(req: NodeActionRequest):
-    if not _re.match(r'^[\w\-\.]+$', req.node):
+    if not re.match(r'^[\w\-\.]+$', req.node):
         raise HTTPException(status_code=400, detail="Invalid node name")
     SCANCEL = f"{config.slurm['bin_path']}/scancel"
     try:
@@ -160,7 +158,7 @@ async def scancel_node(req: NodeActionRequest):
 
 @router.get("/node/{node_name}")
 async def get_node_detail(node_name: str):
-    if not _re.match(r'^[\w\-\.]+$', node_name):
+    if not re.match(r'^[\w\-\.]+$', node_name):
         raise HTTPException(status_code=400, detail="Invalid node name")
     r = subprocess.run([SCONTROL, "show", "node", node_name],
                        capture_output=True, text=True, timeout=10)
@@ -185,8 +183,7 @@ async def get_recent_finished_jobs(limit: int = 10):
             if any(s in state for s in ["RUNNING", "PENDING", "RESIZING", "SUSPENDED"]):
                 continue
             # Resolve "CANCELLED by <uid>" to "CANCELLED by <username>"
-            import re as _re
-            m = _re.match(r'CANCELLED by (\d+)', state)
+            m = re.match(r'CANCELLED by (\d+)', state)
             if m:
                 uid = m.group(1)
                 try:
@@ -213,8 +210,7 @@ async def get_recent_finished_jobs(limit: int = 10):
 
 @router.get("/jobs/{job_id}")
 async def get_job_detail(job_id: str):
-    import re as _re2
-    if not _re2.match(r'^[\w\.\+\-]+$', job_id):
+    if not re.match(r'^[\w\.\+\-]+$', job_id):
         raise HTTPException(status_code=400, detail="Invalid job id")
     r = subprocess.run([SCONTROL, "show", "job", job_id, "--details"],
                        capture_output=True, text=True, timeout=10)
@@ -222,11 +218,11 @@ async def get_job_detail(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     raw = r.stdout.strip()
     def g(key):
-        m = _re2.search(rf'(?:^|\s){_re2.escape(key)}=(\S+)', raw)
+        m = re.search(rf'(?:^|\s){re.escape(key)}=(\S+)', raw)
         return m.group(1) if m else None
     # stdout/stderr path may contain spaces — grab to end of line
     def gpath(key):
-        m = _re2.search(rf'{_re2.escape(key)}=(.+)', raw)
+        m = re.search(rf'{re.escape(key)}=(.+)', raw)
         return m.group(1).strip() if m else None
     return {
         "job_id":      job_id,
@@ -259,8 +255,7 @@ class JobActionRequest(BaseModel):
 
 @router.post("/jobs/{job_id}/action")
 async def job_action(job_id: str, req: JobActionRequest):
-    import re as _re3
-    if not _re3.match(r'^[\w\.\+\-]+$', job_id):
+    if not re.match(r'^[\w\.\+\-]+$', job_id):
         raise HTTPException(status_code=400, detail="Invalid job id")
     SCANCEL  = f"{config.slurm['bin_path']}/scancel"
     SCONTROL2 = f"{config.slurm['bin_path']}/scontrol"
