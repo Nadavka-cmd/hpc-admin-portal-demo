@@ -13,15 +13,6 @@ AD_GROUPS = [
     "hpc_faculty", "hpc_course_students", "hpc_matlab_users",
 ]
 
-QOS_DEFINITIONS = {
-    "research":           {"priority": 1000, "max_gpus_job": None,  "max_jobs": 10,   "max_wall": None,        "max_submit": 50},
-    "a6000_full":         {"priority": 600,  "max_gpus_job": None,  "max_jobs": None, "max_wall": None,        "max_submit": None},
-    "normal":             {"priority": 500,  "max_gpus_job": 2,     "max_jobs": 2,    "max_wall": "1-00:00:00","max_submit": 20},
-    "a6000_restricted":   {"priority": 500,  "max_gpus_job": 2,     "max_jobs": None, "max_wall": None,        "max_submit": None},
-    "course_batch":       {"priority": 100,  "max_gpus_job": 1,     "max_jobs": 1,    "max_wall": "04:00:00",  "max_submit": 4},
-    "course_interactive": {"priority": 150,  "max_gpus_job": 1,     "max_jobs": 2,    "max_wall": "02:00:00",  "max_submit": 4},
-}
-
 
 def _run(cmd: list) -> tuple[int, str, str]:
     try:
