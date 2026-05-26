@@ -1606,11 +1606,10 @@
           <td style="padding:6px 14px">${(()=>{
             const flags = (q.flags||'').toLowerCase();
             const hasOPQ = flags.includes('overpartqos');
-            return `<span title="${hasOPQ
-              ? 'OverPartQOS is SET — this QoS\'s limits override the partition QoS'
-              : 'OverPartQOS not set — partition QoS limits take precedence and may silently cap this QoS\'s limits'}"
-              style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${hasOPQ?'var(--ok)':'var(--border)'};background:${hasOPQ?'var(--ok-bg)':'var(--bg)'};color:${hasOPQ?'var(--ok)':'var(--muted)'};font-family:monospace;cursor:default;white-space:nowrap">
-              ${hasOPQ?'✓':'✗'} OverPartQOS
+            if(!hasOPQ) return '<span style="color:var(--muted);font-size:12px">—</span>';
+            return `<span title="OverPartQOS is SET — this QoS's limits override the partition QoS"
+              style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok);font-family:monospace;cursor:default;white-space:nowrap">
+              ✓ OverPartQOS
             </span>`;
           })()}</td>
           <td style="padding:6px 14px;white-space:nowrap">
@@ -1640,11 +1639,10 @@
       function _overPartBadge(qname){
         const flags = _qosFlagMap[qname]||'';
         const has = flags.toLowerCase().includes('overpartqos');
-        return `<span title="${has
-          ? 'OverPartQOS is SET — this QoS limits override the partition QoS (e.g. allows more jobs than the partition normally permits)'
-          : 'OverPartQOS is NOT set — partition QoS limits take precedence and may cap this QoS\'s limits (e.g. MaxJobsPU)'}"
-          style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${has?'var(--ok)':'var(--border)'};background:${has?'var(--ok-bg)':'var(--bg)'};color:${has?'var(--ok)':'var(--muted)'};font-family:monospace;cursor:default;user-select:none">
-          ${has?'✓':'✗'} OverPartQOS
+        if(!has) return '';
+        return `<span title="OverPartQOS is SET — this QoS's limits override the partition QoS (e.g. allows more jobs than the partition normally permits)"
+          style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok);font-family:monospace;cursor:default;user-select:none">
+          ✓ OverPartQOS
         </span>`;
       }
 
