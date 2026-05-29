@@ -442,6 +442,23 @@
     </div>
 
     <div id="diff-panel" style="display:none"></div>
+
+    <!-- FILE EDITOR -->
+    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="sync-btn" onclick="loadFileEditor('slurm')" id="editor-load-slurm" style="padding:6px 16px;font-size:12px">✏️ slurm.conf</button>
+          <button class="sync-btn" onclick="loadFileEditor('hosts')" id="editor-load-hosts" style="padding:6px 16px;font-size:12px">✏️ hosts block</button>
+          <span id="editor-file-label" style="font-size:12px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <button class="sync-btn" onclick="saveFileEditor()" id="editor-save-btn" style="padding:6px 16px;font-size:12px" disabled>Save to master</button>
+      </div>
+      <textarea id="file-editor-ta" rows="22" spellcheck="false"
+        style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:var(--text);resize:vertical;outline:none;line-height:1.6"
+        placeholder="Click a button above to load a file for editing..."
+        oninput="document.getElementById('editor-save-btn').disabled=false"></textarea>
+      <div id="file-editor-status" style="margin-top:8px;font-size:12px;min-height:18px"></div>
+    </div>
   </div>
 
   <!-- ══ ACCOUNTS TAB ══ -->
@@ -1396,6 +1413,58 @@
         </table>
       </div>`;
     panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  let _editorMode = null;
+
+  async function loadFileEditor(mode){
+    _editorMode = mode;
+    const ta  = document.getElementById('file-editor-ta');
+    const st  = document.getElementById('file-editor-status');
+    const lbl = document.getElementById('editor-file-label');
+    const savBtn = document.getElementById('editor-save-btn');
+    ta.value = ''; savBtn.disabled = true;
+    st.textContent = 'Loading…'; st.style.color = 'var(--muted)';
+    const url = mode==='slurm' ? BASE+'/api/sync/file/slurm.conf' : BASE+'/api/sync/hosts-block';
+    const label = mode==='slurm' ? '/etc/slurm/slurm.conf' : '/etc/hosts (Ansible block)';
+    try {
+      const data = await fetch(url).then(r=>r.json());
+      ta.value = mode==='slurm' ? (data.content||'') : (data.block||'');
+      lbl.textContent = '— ' + label;
+      savBtn.disabled = false;
+      st.textContent = '✓ Loaded'; st.style.color = 'var(--ok)';
+    } catch(e) {
+      st.textContent = '⚠ ' + e.message; st.style.color = 'var(--danger)';
+    }
+  }
+
+  async function saveFileEditor(){
+    const ta  = document.getElementById('file-editor-ta');
+    const st  = document.getElementById('file-editor-status');
+    const savBtn = document.getElementById('editor-save-btn');
+    if(!ta.value.trim()){st.textContent='⚠ Nothing to save';st.style.color='var(--danger)';return;}
+    const label = _editorMode==='slurm' ? 'slurm.conf' : 'hosts block';
+    if(!confirm('Save '+label+' to hpc-master?')) return;
+    savBtn.disabled = true; savBtn.textContent = 'Saving…';
+    st.textContent = ''; st.style.color = 'var(--muted)';
+    const url  = _editorMode==='slurm' ? BASE+'/api/sync/file/slurm.conf' : BASE+'/api/sync/hosts-block';
+    const body = _editorMode==='slurm' ? {content: ta.value} : {block: ta.value};
+    try {
+      const data = await fetch(url, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      }).then(r=>r.json());
+      if(data.ok){
+        st.textContent = '✓ ' + data.msg + ' — use Config Sync to push cluster-wide';
+        st.style.color = 'var(--ok)';
+      } else {
+        st.textContent = '⚠ ' + (data.detail||'Save failed'); st.style.color = 'var(--danger)';
+      }
+    } catch(e) {
+      st.textContent = '⚠ ' + e.message; st.style.color = 'var(--danger)';
+    } finally {
+      savBtn.disabled = false; savBtn.textContent = 'Save to master';
+    }
   }
 
   async function runSyncCheck(){

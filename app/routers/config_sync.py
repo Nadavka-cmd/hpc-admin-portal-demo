@@ -10,8 +10,8 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-SSH_USER = "demo-admin"
-MASTER   = "demo-master"
+SSH_USER = "profadmin"
+MASTER   = "hpc-master"
 SINFO    = "/opt/slurm/bin/sinfo"
 SCONTROL = "/opt/slurm/bin/scontrol"
 
@@ -151,7 +151,7 @@ def _check_hosts(node: str) -> dict:
 def _check_file(local_path: str, node: str, remote_path: str) -> dict:
     if local_path == "/etc/hosts":
         return _check_hosts(node)
-    # Check file exists on master — handle PermissionError (file exists but not readable by demo-admin)
+    # Check file exists on master — handle PermissionError (file exists but not readable by profadmin)
     try:
         exists = Path(local_path).exists()
     except PermissionError:
@@ -344,3 +344,83 @@ async def push_all_mismatches(req: SyncAllRequest):
                        capture_output=True, timeout=10)
 
     return {"results": results}
+
+
+# ── HOSTS BLOCK EDITOR ────────────────────────────────────────────────────
+
+HOSTS_FILE = "/etc/hosts"
+
+@router.get("/hosts-block")
+async def get_hosts_block():
+    """Read the Ansible-managed block from /etc/hosts on master."""
+    text = _read_file(HOSTS_FILE)
+    if text is None:
+        raise HTTPException(status_code=500, detail="Cannot read /etc/hosts")
+    if HOSTS_BEGIN not in text or HOSTS_END not in text:
+        raise HTTPException(status_code=404, detail="Ansible block markers not found in /etc/hosts")
+    s = text.index(HOSTS_BEGIN) + len(HOSTS_BEGIN)
+    e = text.index(HOSTS_END)
+    block = text[s:e].strip("\n")
+    return {"block": block}
+
+
+class HostsBlockRequest(BaseModel):
+    block: str
+
+
+@router.post("/hosts-block")
+async def save_hosts_block(req: HostsBlockRequest):
+    """Replace the Ansible-managed block in /etc/hosts on master."""
+    text = _read_file(HOSTS_FILE)
+    if text is None:
+        raise HTTPException(status_code=500, detail="Cannot read /etc/hosts")
+    if HOSTS_BEGIN not in text or HOSTS_END not in text:
+        raise HTTPException(status_code=404, detail="Ansible block markers not found")
+
+    s = text.index(HOSTS_BEGIN)
+    e = text.index(HOSTS_END) + len(HOSTS_END)
+    new_block = req.block.strip("\n")
+    new_text = text[:s] + HOSTS_BEGIN + "\n" + new_block + "\n" + HOSTS_END + text[e:]
+
+    # Write via sudo tee
+    r = subprocess.run(
+        ["sudo", "tee", HOSTS_FILE],
+        input=new_text, capture_output=True, text=True, timeout=10
+    )
+    if r.returncode != 0:
+        raise HTTPException(status_code=500, detail=r.stderr.strip() or "Write failed")
+
+    return {"ok": True, "msg": "Hosts block saved to /etc/hosts on master"}
+
+
+# ── GENERIC FILE EDITOR ───────────────────────────────────────────────────
+
+EDITABLE_FILES = {
+    "slurm.conf": "/etc/slurm/slurm.conf",
+}
+
+class FileContentRequest(BaseModel):
+    content: str
+
+@router.get("/file/{file_key}")
+async def get_file(file_key: str):
+    if file_key not in EDITABLE_FILES:
+        raise HTTPException(status_code=404, detail="File not editable via portal")
+    path = EDITABLE_FILES[file_key]
+    text = _read_file(path)
+    if text is None:
+        raise HTTPException(status_code=500, detail=f"Cannot read {path}")
+    return {"content": text, "path": path}
+
+@router.post("/file/{file_key}")
+async def save_file(file_key: str, req: FileContentRequest):
+    if file_key not in EDITABLE_FILES:
+        raise HTTPException(status_code=404, detail="File not editable via portal")
+    path = EDITABLE_FILES[file_key]
+    r = subprocess.run(
+        ["sudo", "tee", path],
+        input=req.content, capture_output=True, text=True, timeout=10
+    )
+    if r.returncode != 0:
+        raise HTTPException(status_code=500, detail=r.stderr.strip() or "Write failed")
+    return {"ok": True, "msg": f"Saved {path} on hpc-master"}
