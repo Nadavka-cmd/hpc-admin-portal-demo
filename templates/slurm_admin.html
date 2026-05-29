@@ -569,22 +569,45 @@
 
   <!-- ══ QOS TAB ══ -->
   <div class="tab-pane" id="pane-qos">
-    <div style="font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
-      <span>⚖ QoS Policy <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">sacctmgr</span></span>
-      <button class="sync-btn" onclick="loadQoS()" style="padding:6px 14px;font-size:12px">⟳ Refresh</button>
+    <!-- SECTION 1: QoS Table -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:14px;font-weight:600">&#x2696; QoS Policies <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">sacctmgr</span></span>
+      <div style="display:flex;gap:8px">
+        <button class="sync-btn secondary" onclick="loadQoS()" style="padding:6px 14px;font-size:12px">&#x27f3; Refresh</button>
+        <button class="sync-btn" onclick="openQosCreate()" style="padding:6px 14px;font-size:12px">+ New QoS</button>
+      </div>
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Click Edit to modify QoS limits. Click Assign to add/remove a QoS from a user.</div>
     <div class="table-wrap"><table><thead><tr>
-      <th style="padding:8px 14px">QoS Name</th><th style="padding:8px 14px">Priority</th>
-      <th style="padding:8px 14px">Max GPUs/Job</th><th style="padding:8px 14px">Max GPUs/User</th><th style="padding:8px 14px">Max Jobs</th>
-      <th style="padding:8px 14px">Max Wall</th><th style="padding:8px 14px">Max Submit</th>
+      <th style="padding:8px 14px">QoS Name</th>
+      <th style="padding:8px 14px">Priority</th>
+      <th style="padding:8px 14px">Max GPUs/Job</th>
+      <th style="padding:8px 14px">Grp GPUs</th>
+      <th style="padding:8px 14px">Max Jobs</th>
+      <th style="padding:8px 14px">Max Wall</th>
+      <th style="padding:8px 14px">Max Submit</th>
+      <th style="padding:8px 14px">Flags</th>
       <th style="padding:8px 14px">Actions</th>
-    </tr></thead><tbody id="qos-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
+    </tr></thead><tbody id="qos-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
 
-    <!-- QoS Lookup Widget -->
+    <!-- SECTION 2: Partition Policy -->
+    <div style="margin-top:28px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+        <span>&#x1f512; Partition QoS Policy <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">scontrol + slurm.conf</span></span>
+        <button class="sync-btn secondary" onclick="loadPartitions()" style="padding:6px 14px;font-size:12px">&#x27f3; Refresh</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th style="padding:8px 14px">Partition</th>
+        <th style="padding:8px 14px">Default QoS</th>
+        <th style="padding:8px 14px">Allowed QoS</th>
+        <th style="padding:8px 14px">Allow Groups</th>
+        <th style="padding:8px 14px">Actions</th>
+      </tr></thead><tbody id="partition-qos-tbody"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
+    </div>
+
+    <!-- SECTION 3: QoS Lookup -->
     <div style="margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow)">
       <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px">
-        🔍 QoS Lookup
+        &#x1f50d; QoS Lookup
         <span style="font-size:11px;font-weight:400;color:var(--muted)">username or account</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -775,14 +798,15 @@
   </div>
 
   <!-- QOS EDIT MODAL -->
+  <!-- QOS EDIT MODAL -->
   <div id="qos-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
-    <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:480px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
           <div style="font-size:16px;font-weight:600">Edit QoS: <span id="qos-edit-name" style="font-family:monospace;color:var(--accent)"></span></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">Leave blank to remove limit</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Leave blank to remove a limit</div>
         </div>
-        <button onclick="document.getElementById('qos-edit-modal').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">×</button>
+        <button onclick="closeModal('qos-edit-modal')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">&#x00d7;</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div>
@@ -791,15 +815,15 @@
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Wall Time</label>
-          <input id="qos-edit-maxwall" type="text" placeholder="e.g. 1-00:00:00 or 04:00:00" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <input id="qos-edit-maxwall" type="text" placeholder="e.g. 1-00:00:00" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs per Job</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job (MaxTRESPerUser)</label>
           <input id="qos-edit-maxgpu" type="text" placeholder="e.g. 2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs per User</label>
-          <input id="qos-edit-maxgpuuser" type="text" placeholder="e.g. 2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Grp GPUs (GrpTRES cap)</label>
+          <input id="qos-edit-grpgpu" type="text" placeholder="e.g. 8" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Jobs per User</label>
@@ -807,13 +831,76 @@
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Submit per User</label>
-          <input id="qos-edit-maxsubmit" type="text" placeholder="e.g. 10" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <input id="qos-edit-maxsubmit" type="text" placeholder="e.g. 20" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Flags</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-overpartqos" value="OverPartQOS"> OverPartQOS <span style="color:var(--muted);font-size:11px">(exceed partition limits)</span></label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-noreserve" value="NoReserve"> NoReserve</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-reqresv" value="RequiresReservation"> RequiresReservation</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-notlimited" value="NotLimited"> NotLimited</label>
         </div>
       </div>
       <div id="qos-edit-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="document.getElementById('qos-edit-modal').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+        <button onclick="closeModal('qos-edit-modal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+        <button class="sync-btn danger" onclick="submitQosDelete()" style="background:none;border-color:var(--danger);color:var(--danger)">Delete QoS</button>
         <button class="sync-btn" onclick="submitQosEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QOS CREATE MODAL -->
+  <div id="qos-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:600">Create New QoS</div>
+        <button onclick="closeModal('qos-create-modal')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">&#x00d7;</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">QoS Name *</label>
+        <input id="qos-create-name" type="text" placeholder="e.g. vilenchik_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Priority</label>
+          <input id="qos-create-priority" type="text" placeholder="e.g. 500" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Wall Time</label>
+          <input id="qos-create-maxwall" type="text" placeholder="e.g. 1-00:00:00" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job</label>
+          <input id="qos-create-maxgpu" type="text" placeholder="e.g. 4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Grp GPUs cap</label>
+          <input id="qos-create-grpgpu" type="text" placeholder="e.g. 8" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Jobs/User</label>
+          <input id="qos-create-maxjobs" type="text" placeholder="e.g. 4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Submit/User</label>
+          <input id="qos-create-maxsubmit" type="text" placeholder="e.g. 20" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Flags</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-create-flag-overpartqos" value="OverPartQOS"> OverPartQOS</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-create-flag-noreserve" value="NoReserve"> NoReserve</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-create-flag-notlimited" value="NotLimited"> NotLimited</label>
+        </div>
+      </div>
+      <div id="qos-create-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeModal('qos-create-modal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+        <button class="sync-btn" onclick="submitQosCreate()">Create QoS</button>
       </div>
     </div>
   </div>
@@ -826,7 +913,7 @@
           <div style="font-size:16px;font-weight:600">Assign QoS: <span id="qos-assign-name" style="font-family:monospace;color:var(--accent)"></span></div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">Add or remove this QoS from a user</div>
         </div>
-        <button onclick="document.getElementById('qos-assign-modal').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">×</button>
+        <button onclick="closeModal('qos-assign-modal')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">&#x00d7;</button>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Username</label>
@@ -834,24 +921,53 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Account</label>
-        <input id="qos-assign-account" type="text" placeholder="e.g. ece-students" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <input id="qos-assign-account" type="text" placeholder="e.g. research_vilenchik" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
       </div>
       <div style="margin-bottom:16px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Set as default QoS?</label>
         <select id="qos-assign-default" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-          <option value="no">No — just add to allowed list</option>
-          <option value="yes">Yes — set as default QoS</option>
+          <option value="no">No &#x2014; add to allowed list only</option>
+          <option value="yes">Yes &#x2014; set as default QoS</option>
         </select>
       </div>
       <div id="qos-assign-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="document.getElementById('qos-assign-modal').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+        <button onclick="closeModal('qos-assign-modal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
         <button class="sync-btn danger" onclick="submitQosAssign('remove')" style="background:none;border-color:var(--danger);color:var(--danger)">Remove</button>
         <button class="sync-btn" onclick="submitQosAssign('add')">Assign</button>
       </div>
     </div>
   </div>
 
+  <!-- PARTITION QOS MODAL -->
+  <div id="partition-qos-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:16px;font-weight:600">Partition: <span id="pqos-part-name" style="font-family:monospace;color:var(--accent)"></span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Changes apply live + written to slurm.conf</div>
+        </div>
+        <button onclick="closeModal('partition-qos-modal')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">&#x00d7;</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Allowed QoS <span style="color:var(--accent)">(check all that apply; uncheck all = ALL)</span></label>
+        <div id="pqos-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Default QoS <span style="font-size:11px">(partition-level default)</span></label>
+        <select id="pqos-default-qos" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <option value="">&#x2014; no change &#x2014;</option>
+        </select>
+      </div>
+      <div id="pqos-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeModal('partition-qos-modal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+        <button class="sync-btn" onclick="submitPartitionQos()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NODE ACTION MODAL -->
   <!-- NODE ACTION MODAL -->
   <div id="node-reason-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
     <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
@@ -914,7 +1030,7 @@
     if(tab==='jobs'&&!jobsLoaded) loadJobs();
     if(tab==='accts'&&!acctTabLoaded){loadAccounts();acctTabLoaded=true;}
     if(tab==='ad') checkADSession();
-    if(tab==='qos') loadQoS();
+    if(tab==='qos'){ loadQoS(); loadPartitions(); }
     if(tab==='mail') loadMailGroups();
   }
 
@@ -1660,24 +1776,26 @@
 
   async function loadQoS(){
     try{
-      const data=await fetch(BASE+'/api/accounts/qos').then(r=>r.json());
+      const data=await fetch(BASE+'/api/slurm/qos').then(r=>r.json());
       qosData=data.qos||[];
       document.getElementById('qos-tbody').innerHTML=qosData.map(q=>`
         <tr>
           <td style="padding:6px 14px"><span class="qos-badge" style="font-size:13px;padding:3px 10px">${q.name}</span></td>
           <td style="padding:6px 14px" class="mono">${q.priority||'—'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_gpus_job||'∞'}</td>
-          <td style="padding:6px 14px" class="mono">${q.max_gpus_user||'∞'}</td>
+          <td style="padding:6px 14px" class="mono">${q.grp_gpus||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_jobs||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_wall||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_submit||'∞'}</td>
+          <td style="padding:6px 14px">${q.flags?q.flags.split(',').map(f=>`<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:var(--accent-lt);color:var(--accent);font-family:monospace">${f}</span>`).join(' '):'—'}</td>
           <td style="padding:6px 14px;white-space:nowrap">
             <button class="node-menu-btn" onclick="openQosEdit(${JSON.stringify(q).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
             <button class="node-menu-btn" onclick="openQosAssign('${q.name}')" style="font-size:12px;padding:3px 10px;margin-left:4px">Assign</button>
           </td>
         </tr>`).join('');
-    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
+    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
+
 
   async function lookupQoS(){
     const target = document.getElementById('qos-lookup-input').value.trim();
@@ -2011,32 +2129,97 @@
     document.getElementById('qos-edit-priority').value = q.priority||'';
     document.getElementById('qos-edit-maxwall').value = q.max_wall||'';
     document.getElementById('qos-edit-maxgpu').value = q.max_gpus_job||'';
-    document.getElementById('qos-edit-maxgpuuser').value = q.max_gpus_user||'';
+    document.getElementById('qos-edit-grpgpu').value = q.grp_gpus||'';
     document.getElementById('qos-edit-maxjobs').value = q.max_jobs||'';
     document.getElementById('qos-edit-maxsubmit').value = q.max_submit||'';
+    // Set flags checkboxes
+    const flags = (q.flags||'').split(',').map(f=>f.trim());
+    document.getElementById('qos-flag-overpartqos').checked = flags.includes('OverPartQOS');
+    document.getElementById('qos-flag-noreserve').checked = flags.includes('NoReserve');
+    document.getElementById('qos-flag-reqresv').checked = flags.includes('RequiresReservation');
+    document.getElementById('qos-flag-notlimited').checked = flags.includes('NotLimited');
     document.getElementById('qos-edit-result').textContent = '';
-    document.getElementById('qos-edit-modal').style.display='flex';
+    openModal('qos-edit-modal');
   }
 
   async function submitQosEdit(){
     const res_el = document.getElementById('qos-edit-result');
     res_el.textContent='Saving…'; res_el.style.color='var(--muted)';
+    const flagVals = ['qos-flag-overpartqos','qos-flag-noreserve','qos-flag-reqresv','qos-flag-notlimited']
+      .filter(id=>document.getElementById(id).checked)
+      .map(id=>document.getElementById(id).value).join(',');
     const payload = {
       name: _qosEditName,
       priority: document.getElementById('qos-edit-priority').value.trim(),
       max_wall: document.getElementById('qos-edit-maxwall').value.trim(),
       max_gpus_job: document.getElementById('qos-edit-maxgpu').value.trim(),
-      max_gpus_user: document.getElementById('qos-edit-maxgpuuser').value.trim(),
+      grp_gpus: document.getElementById('qos-edit-grpgpu').value.trim(),
       max_jobs: document.getElementById('qos-edit-maxjobs').value.trim(),
       max_submit: document.getElementById('qos-edit-maxsubmit').value.trim(),
+      flags: flagVals,
     };
     try{
-      const res = await fetch(BASE+'/api/accounts/qos/edit', {method:'POST',
+      const res = await fetch(BASE+'/api/slurm/qos/edit', {method:'POST',
         headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
       }).then(r=>r.json());
       res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
       res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
-      if(res.ok) setTimeout(()=>{ document.getElementById('qos-edit-modal').style.display='none'; loadQoS(); }, 1000);
+      if(res.ok) setTimeout(()=>{ closeModal('qos-edit-modal'); loadQoS(); }, 1000);
+    }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
+  }
+
+  async function submitQosDelete(){
+    if(!confirm('Delete QoS "'+_qosEditName+'"? This cannot be undone.')) return;
+    const res_el = document.getElementById('qos-edit-result');
+    res_el.textContent='Deleting…'; res_el.style.color='var(--muted)';
+    try{
+      const res = await fetch(BASE+'/api/slurm/qos/delete', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:_qosEditName})
+      }).then(r=>r.json());
+      res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
+      res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
+      if(res.ok) setTimeout(()=>{ closeModal('qos-edit-modal'); loadQoS(); }, 1000);
+    }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
+  }
+
+  function openQosCreate(){
+    ['qos-create-name','qos-create-priority','qos-create-maxwall','qos-create-maxgpu',
+     'qos-create-grpgpu','qos-create-maxjobs','qos-create-maxsubmit'].forEach(id=>{
+      document.getElementById(id).value='';
+    });
+    ['qos-create-flag-overpartqos','qos-create-flag-noreserve','qos-create-flag-notlimited'].forEach(id=>{
+      document.getElementById(id).checked=false;
+    });
+    document.getElementById('qos-create-result').textContent='';
+    openModal('qos-create-modal');
+    setTimeout(()=>document.getElementById('qos-create-name').focus(),100);
+  }
+
+  async function submitQosCreate(){
+    const res_el = document.getElementById('qos-create-result');
+    const name = document.getElementById('qos-create-name').value.trim();
+    if(!name){res_el.textContent='Name required';res_el.style.color='var(--danger)';return;}
+    res_el.textContent='Creating…'; res_el.style.color='var(--muted)';
+    const flagVals = ['qos-create-flag-overpartqos','qos-create-flag-noreserve','qos-create-flag-notlimited']
+      .filter(id=>document.getElementById(id).checked)
+      .map(id=>document.getElementById(id).value).join(',');
+    const payload = {
+      name,
+      priority: document.getElementById('qos-create-priority').value.trim(),
+      max_wall: document.getElementById('qos-create-maxwall').value.trim(),
+      max_gpus_job: document.getElementById('qos-create-maxgpu').value.trim(),
+      grp_gpus: document.getElementById('qos-create-grpgpu').value.trim(),
+      max_jobs: document.getElementById('qos-create-maxjobs').value.trim(),
+      max_submit: document.getElementById('qos-create-maxsubmit').value.trim(),
+      flags: flagVals,
+    };
+    try{
+      const res = await fetch(BASE+'/api/slurm/qos/create', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      }).then(r=>r.json());
+      res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
+      res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
+      if(res.ok) setTimeout(()=>{ closeModal('qos-create-modal'); loadQoS(); }, 1000);
     }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
   }
 
@@ -2046,7 +2229,7 @@
     document.getElementById('qos-assign-account').value = '';
     document.getElementById('qos-assign-default').value = 'no';
     document.getElementById('qos-assign-result').textContent = '';
-    document.getElementById('qos-assign-modal').style.display='flex';
+    openModal('qos-assign-modal');
     setTimeout(()=>document.getElementById('qos-assign-user').focus(),100);
   }
 
@@ -2069,7 +2252,74 @@
     }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
   }
 
-  // ══════════════════════════════════════════════════════════
+  // ── PARTITION QoS ──────────────────────────────────────────────────────
+
+  let _partitionCurrent = '';
+
+  async function loadPartitions(){
+    try{
+      const [pd, qd] = await Promise.all([
+        fetch(BASE+'/api/slurm/partitions').then(r=>r.json()),
+        fetch(BASE+'/api/slurm/qos').then(r=>r.json()),
+      ]);
+      const partitions = pd.partitions||[];
+      const allQos = (qd.qos||[]).map(q=>q.name);
+      document.getElementById('partition-qos-tbody').innerHTML = partitions.map(p=>{
+        const aqRaw = p.allow_qos||'ALL';
+        const aqList = aqRaw==='ALL' ? [] : aqRaw.split(',').filter(Boolean);
+        const aqDisplay = aqRaw==='ALL'
+          ? '<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:var(--ok);color:#fff;opacity:.8">ALL</span>'
+          : aqList.map(q=>`<span class="qos-badge">${q}</span>`).join(' ');
+        return `<tr>
+          <td style="padding:6px 14px"><span class="mono" style="font-weight:600">${p.name}</span></td>
+          <td style="padding:6px 14px"><span class="qos-badge">${p.default_qos||'—'}</span></td>
+          <td style="padding:6px 14px">${aqDisplay}</td>
+          <td style="padding:6px 14px;font-size:12px;color:var(--muted)">${p.allow_groups||'ALL'}</td>
+          <td style="padding:6px 14px">
+            <button class="node-menu-btn" onclick="openPartitionQos(${JSON.stringify(p).replace(/"/g,'&quot;')},${JSON.stringify(allQos).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }catch(e){
+      document.getElementById('partition-qos-tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;
+    }
+  }
+
+  function openPartitionQos(p, allQos){
+    _partitionCurrent = p.name;
+    document.getElementById('pqos-part-name').textContent = p.name;
+    document.getElementById('pqos-result').textContent = '';
+    const current = p.allow_qos==='ALL' ? [] : (p.allow_qos||'').split(',').filter(Boolean);
+    // Build checkboxes
+    document.getElementById('pqos-checkboxes').innerHTML = allQos.map(q=>`
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
+        <input type="checkbox" value="${q}" ${current.includes(q)?'checked':''}>
+        <span class="mono">${q}</span>
+      </label>`).join('');
+    // Build default QoS select
+    const defSel = document.getElementById('pqos-default-qos');
+    defSel.innerHTML = '<option value="">— no change —</option>' +
+      allQos.map(q=>`<option value="${q}" ${q===p.default_qos?'selected':''}>${q}</option>`).join('');
+    openModal('partition-qos-modal');
+  }
+
+  async function submitPartitionQos(){
+    const res_el = document.getElementById('pqos-result');
+    res_el.textContent='Applying…'; res_el.style.color='var(--muted)';
+    const checked = [...document.querySelectorAll('#pqos-checkboxes input:checked')].map(cb=>cb.value);
+    const allow_qos = checked.length ? checked.join(',') : 'ALL';
+    const default_qos = document.getElementById('pqos-default-qos').value;
+    try{
+      const res = await fetch(BASE+'/api/slurm/partition/qos', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({partition:_partitionCurrent, allow_qos, default_qos, write_conf:true})
+      }).then(r=>r.json());
+      res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
+      res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
+      if(res.ok) setTimeout(()=>{ closeModal('partition-qos-modal'); loadPartitions(); }, 1200);
+    }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
+  }
+
   // NODE MENU
   function toggleNodeMenu(e, id){
     e.stopPropagation();
