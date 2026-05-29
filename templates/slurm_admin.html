@@ -561,9 +561,8 @@
       <th style="padding:8px 14px">QoS Name</th><th style="padding:8px 14px">Priority</th>
       <th style="padding:8px 14px">Max GPUs/Job</th><th style="padding:8px 14px">Max GPUs/User</th><th style="padding:8px 14px">Max Jobs</th>
       <th style="padding:8px 14px">Max Wall</th><th style="padding:8px 14px">Max Submit</th>
-      <th style="padding:8px 14px">Flags <span title="OverPartQOS: this QoS's limits take precedence over the partition QoS. Without it, partition QoS limits (e.g. MaxJobsPU=2 on 'normal') silently cap the user's QoS limits." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--border);color:var(--muted);font-size:10px;font-weight:700;cursor:default;margin-left:4px;vertical-align:middle">?</span></th>
       <th style="padding:8px 14px">Actions</th>
-    </tr></thead><tbody id="qos-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
+    </tr></thead><tbody id="qos-tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
 
     <!-- QoS Lookup Widget -->
     <div style="margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow)">
@@ -697,7 +696,7 @@
         <!-- recipient preview list -->
         <div id="mail-preview-box" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Recipients <span id="mail-preview-count" style="background:var(--accent);color:#fff;padding:1px 7px;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px">0</span></div>
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)"><span id="mail-preview-title">Recipients</span> <span id="mail-preview-count" style="background:var(--accent);color:#fff;padding:1px 7px;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px">0</span></div>
             <button onclick="document.getElementById('mail-preview-box').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1">×</button>
           </div>
           <div id="mail-preview-list" style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;font-size:12px;font-family:monospace"></div>
@@ -1603,21 +1602,12 @@
           <td style="padding:6px 14px" class="mono">${q.max_jobs||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_wall||'∞'}</td>
           <td style="padding:6px 14px" class="mono">${q.max_submit||'∞'}</td>
-          <td style="padding:6px 14px">${(()=>{
-            const flags = (q.flags||'').toLowerCase();
-            const hasOPQ = flags.includes('overpartqos');
-            if(!hasOPQ) return '<span style="color:var(--muted);font-size:12px">—</span>';
-            return `<span title="OverPartQOS is SET — this QoS's limits override the partition QoS"
-              style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok);font-family:monospace;cursor:default;white-space:nowrap">
-              ✓ OverPartQOS
-            </span>`;
-          })()}</td>
           <td style="padding:6px 14px;white-space:nowrap">
             <button class="node-menu-btn" onclick="openQosEdit(${JSON.stringify(q).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
             <button class="node-menu-btn" onclick="openQosAssign('${q.name}')" style="font-size:12px;padding:3px 10px;margin-left:4px">Assign</button>
           </td>
         </tr>`).join('');
-    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
+    }catch(e){document.getElementById('qos-tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
 
   async function lookupQoS(){
@@ -1632,20 +1622,6 @@
         res.innerHTML=`<span style="color:var(--muted);font-size:13px">No Slurm associations found for <b>${target}</b></span>`;
         return;
       }
-      // Build a flag map from already-loaded qosData
-      const _qosFlagMap = {};
-      (qosData||[]).forEach(q=>{ _qosFlagMap[q.name] = q.flags||''; });
-
-      function _overPartBadge(qname){
-        const flags = _qosFlagMap[qname]||'';
-        const has = flags.toLowerCase().includes('overpartqos');
-        if(!has) return '';
-        return `<span title="OverPartQOS is SET — this QoS's limits override the partition QoS (e.g. allows more jobs than the partition normally permits)"
-          style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok);font-family:monospace;cursor:default;user-select:none">
-          ✓ OverPartQOS
-        </span>`;
-      }
-
       res.innerHTML = data.rows.map(row => `
         <div style="padding:12px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg)">
           <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
@@ -1655,8 +1631,7 @@
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:11px;color:var(--muted);margin-right:2px">QoS</span>
             <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--accent-lt);color:var(--accent);font-family:monospace;border:1px solid var(--accent)">${row.default_qos} <span style="font-size:10px;font-weight:500;opacity:.7">default</span></span>
-            ${_overPartBadge(row.default_qos)}
-            ${row.other_qos.map(q=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:monospace;color:var(--text)">${q}</span>${_overPartBadge(q)}`).join('')}
+            ${row.other_qos.map(q=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:monospace;color:var(--text)">${q}</span>`).join('')}
           </div>
         </div>`).join('');
     }catch(e){
@@ -2125,7 +2100,8 @@
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 8px;border-radius:7px;transition:background .1s"
           onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
           <input type="checkbox" id="mg-${g.id}" value="${g.id}"
-            style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
+            style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer"
+            onchange="_clearMailPreview()">
           <div>
             <div style="font-size:13px;font-weight:500;font-family:monospace">${g.id}</div>
             <div style="font-size:11px;color:var(--muted)">${g.label}</div>
@@ -2142,6 +2118,11 @@
     return Array.from(document.querySelectorAll('#mail-group-list input[type=checkbox]:checked')).map(c=>c.value);
   }
 
+  function _clearMailPreview() {
+    const box = document.getElementById('mail-preview-box');
+    if (box) box.style.display = 'none';
+  }
+
   async function previewRecipients() {
     const groups = _getSelectedGroups();
     if (!groups.length) { alert('Select at least one group'); return; }
@@ -2149,9 +2130,11 @@
     const list = document.getElementById('mail-preview-list');
     const countEl = document.getElementById('mail-preview-count');
     const errEl = document.getElementById('mail-preview-errors');
+    const titleEl = document.getElementById('mail-preview-title');
     box.style.display = 'block';
     list.innerHTML = '<div style="color:var(--muted)">Resolving…</div>';
     errEl.textContent = '';
+    if (titleEl) titleEl.textContent = 'Recipients for: ' + groups.join(', ');
     try {
       const data = await fetch(BASE+'/api/mail/preview-recipients', {
         method:'POST', headers:{'Content-Type':'application/json'},
