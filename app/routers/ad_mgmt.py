@@ -7,17 +7,17 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-LDAP_URI  = "ldap://ad.example.local"
-LDAP_BASE = "DC=example,DC=local"
-HPC_OU    = "OU=HPC,DC=example,DC=local"
+LDAP_URI  = "ldap://auth.ad.bgu.ac.il"
+LDAP_BASE = "DC=auth,DC=ad,DC=bgu,DC=ac,DC=il"
+HPC_OU    = "OU=HPC,OU=EE,OU=Departments,DC=auth,DC=ad,DC=bgu,DC=ac,DC=il"
 
 HPC_PARENT_GROUPS = [
     "hpc_eeadmins",
     "hpc_researchers",
     "hpc_faculty",
     "hpc_course_students",
-    "hpc_research_beta",
-    "hpc_research_alpha",
+    "hpc_adrian",
+    "hpc_permuter",
     "hpc_matlab_users",
 ]
 
@@ -199,7 +199,7 @@ class AddChildGroupRequest(BaseModel):
 
 @router.post("/auth")
 async def ad_auth(req: ADAuthRequest):
-    dn = req.username if "@" in req.username else f"{req.username}@ad.example.local"
+    dn = req.username if "@" in req.username else f"{req.username}@auth.ad.bgu.ac.il"
     rc, out, err = _ldap_run([
         "ldapsearch", "-H", LDAP_URI, "-x",
         "-D", dn, "-w", req.password,
@@ -232,7 +232,8 @@ async def get_groups():
     if not _ad_session["authenticated"]:
         raise HTTPException(status_code=401, detail="Not authenticated to AD")
 
-    result = []
+    # First pass: resolve all groups
+    resolved = {}
     for group in HPC_PARENT_GROUPS:
         typed = _get_group_members_typed(group)
         users = typed["users"]
@@ -248,13 +249,21 @@ async def get_groups():
                 "count": len(cg_typed["users"]) + len(cg_typed["groups"]),
             })
 
-        total = len(users) + len(child_group_dns)
-        result.append({
+        resolved[group] = {
             "name": group,
             "direct_users": users,
             "child_groups": children_detail,
-            "total_members": total,
-        })
+            "total_members": len(users) + len(child_group_dns),
+        }
+
+    # Collect all group names that appear as children of any other group
+    child_names = set()
+    for entry in resolved.values():
+        for cg in entry["child_groups"]:
+            child_names.add(cg["name"])
+
+    # Only emit top-level entries for groups not nested under another
+    result = [v for k, v in resolved.items() if k not in child_names]
 
     return {"groups": result}
 
