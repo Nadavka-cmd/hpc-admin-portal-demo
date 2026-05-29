@@ -268,15 +268,15 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label class="form-label">Hostname *</label>
-          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. demo-node12" autocomplete="off">
+          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. hpc-node12" autocomplete="off">
         </div>
         <div>
           <label class="form-label">Description (optional)</label>
           <input class="form-input" id="ah-desc" type="text" placeholder="e.g. GPU node, rack 3">
         </div>
         <div style="grid-column:1/-1">
-          <label class="form-label">Variables (optional, YAML or JSON)</label>
-          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.x.x"></textarea>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">Variables (optional, YAML or JSON)<button type="button" onclick="fillVarsTemplate()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11px;cursor:pointer;color:var(--text);font-family:inherit">📋 Use Template</button></label>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 132.72.x.x"></textarea>
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label">Add to groups</label>
@@ -383,11 +383,11 @@
             <div id="ou-quota-fields">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-a)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
                   <div id="ou-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-b)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
                   <div id="ou-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -495,11 +495,11 @@
             <div id="og-quota-fields" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-a)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
                   <div id="og-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-b)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
                   <div id="og-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -690,7 +690,7 @@
         html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
           <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div><div style="font-size:14px;font-weight:700">${meta.label}</div><div style="font-size:12px;color:var(--muted)">${meta.sub}</div></div>
-            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. demo-node12)" style="width:220px"></div>`:''}
+            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. hpc-node12)" style="width:220px"></div>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
             ${items.map((t,i)=>`<div style="padding:16px 20px;${i<items.length-1?'border-right:1px solid var(--border)':''}">
@@ -813,20 +813,61 @@
           </div>
           ${g.hosts.length?`<table class="inv-table">
             <thead><tr><th>Hostname</th><th>Description</th><th>Groups</th><th>Status</th><th></th></tr></thead>
-            <tbody>${g.hosts.map(h=>`<tr>
-              <td><span class="mono" style="font-weight:600">${h.name}</span></td>
-              <td style="color:var(--muted);font-size:12px">${h.description||'—'}</td>
-              <td style="font-size:12px">${h.groups.join(', ')||'—'}</td>
-              <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-                <span style="width:7px;height:7px;border-radius:50%;background:${h.enabled?'var(--ok)':'var(--muted)'};display:inline-block"></span>
-                ${h.enabled?'Enabled':'Disabled'}
-              </span></td>
-              <td><button class="remove-host-btn" onclick="removeHost(${h.id},'${h.name}')">Remove</button></td>
-            </tr>`).join('')}</tbody>
+            <tbody>${g.hosts.map(h=>{
+              const varContent = (h.variables||'').trim();
+              const rowId = 'vars-row-'+h.id;
+              return `<tr style="cursor:pointer" onclick="toggleHostVars('${rowId}')">
+                <td><span class="mono" style="font-weight:600">${h.name}</span> <span style="font-size:10px;color:var(--muted)">▾</span></td>
+                <td style="color:var(--muted);font-size:12px">${h.description||'—'}</td>
+                <td style="font-size:12px">${h.groups.join(', ')||'—'}</td>
+                <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+                  <span style="width:7px;height:7px;border-radius:50%;background:${h.enabled?'var(--ok)':'var(--muted)'};display:inline-block"></span>
+                  ${h.enabled?'Enabled':'Disabled'}
+                </span></td>
+                <td onclick="event.stopPropagation()"><button class="remove-host-btn" onclick="removeHost(${h.id},'${h.name}')">Remove</button></td>
+              </tr>
+              <tr id="${rowId}" style="display:none">
+                <td colspan="5" style="padding:0">
+                  <div style="background:var(--bg);border-top:1px solid var(--border);padding:12px 16px">
+                    ${varContent
+                      ? `<pre style="margin:0;font-size:12px;font-family:monospace;color:var(--text);white-space:pre-wrap;word-break:break-all">${varContent}</pre>`
+                      : `<span style="font-size:12px;color:var(--muted)">No variables defined</span>`}
+                    <button onclick="event.stopPropagation();copyHostVars(this)" data-vars="${(varContent).replace(/\"/g,'&quot;')}" style="margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;color:var(--text)">📋 Copy</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}</tbody>
           </table>`:`<div style="padding:16px 20px;font-size:13px;color:var(--muted)">No hosts in this group.</div>`}
         </div>`).join('');
       inventoryLoaded=true;ts();
     }catch(e){el.innerHTML=`<div style="padding:40px;color:var(--danger)">⚠️ ${e.message}</div>`;}
+  }
+
+
+
+  function fillVarsTemplate(){
+    const ta = document.getElementById('ah-vars');
+    ta.value = '---\nansible_host: \nansible_python_interpreter: /usr/bin/python3';
+    ta.focus();
+    // Place cursor at end of ansible_host: line
+    const pos = ta.value.indexOf('ansible_host: ') + 'ansible_host: '.length;
+    ta.setSelectionRange(pos, pos);
+  }
+
+  function toggleHostVars(rowId){
+    const row = document.getElementById(rowId);
+    if(!row) return;
+    row.style.display = row.style.display==='none' ? '' : 'none';
+  }
+
+  function copyHostVars(btn){
+    const vars = btn.getAttribute('data-vars');
+    if(!vars){btn.textContent='❌ No variables';return;}
+    navigator.clipboard.writeText(vars).then(()=>{
+      const orig = btn.textContent;
+      btn.textContent='✓ Copied!';
+      setTimeout(()=>btn.textContent=orig, 1500);
+    });
   }
 
   async function removeHost(hostId,hostname){
