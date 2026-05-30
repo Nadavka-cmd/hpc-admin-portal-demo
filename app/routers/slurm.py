@@ -390,7 +390,6 @@ async def edit_qos(req: QosEditRequest):
     sets = []
     sets.append(f"Priority={req.priority or '0'}")
     if req.max_wall:   sets.append(f"MaxWall={req.max_wall}")
-    else:              sets.append("MaxWall=")
     if req.max_jobs:   sets.append(f"MaxJobsPerUser={req.max_jobs}")
     else:              sets.append("MaxJobsPerUser=")
     if req.max_submit: sets.append(f"MaxSubmitJobsPerUser={req.max_submit}")
