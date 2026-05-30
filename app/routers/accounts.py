@@ -355,3 +355,27 @@ async def lookup_qos(target: str):
         })
 
     return {"ok": True, "rows": result, "msg": ""}
+
+
+class UpdateUserQosRequest(BaseModel):
+    username: str
+    account: str
+    defqos: str
+    extra_qos: str = ""  # comma-separated
+
+
+@router.post("/update-user-qos")
+async def update_user_qos(req: UpdateUserQosRequest):
+    """Update QoS for a single user without restarting slurmctld."""
+    if not re.match(r'^[\w\-\.]+$', req.username):
+        raise HTTPException(status_code=400, detail="Invalid username")
+    extra = [q.strip() for q in req.extra_qos.split(",") if q.strip()]
+    all_qos = ",".join(sorted(set([req.defqos] + extra)))
+    rc, out, err = _run([
+        SACCTMGR, "-i", "modify", "user", req.username,
+        "where", f"Account={req.account}",
+        "set", f"DefaultQOS={req.defqos}", f"QOS={all_qos}"
+    ])
+    if rc != 0:
+        return {"ok": False, "msg": err or out or "sacctmgr error"}
+    return {"ok": True, "msg": f"Updated {req.username}@{req.account}"}
