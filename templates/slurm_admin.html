@@ -815,7 +815,18 @@
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Wall Time</label>
-          <input id="qos-edit-maxwall" type="text" placeholder="e.g. 1-00:00:00" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <select id="qos-edit-maxwall-sel" onchange="qosWallChange('edit')" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);margin-bottom:4px">
+            <option value="">&#x2014; no limit &#x2014;</option>
+            <option value="04:00:00">4 hours</option>
+            <option value="08:00:00">8 hours</option>
+            <option value="12:00:00">12 hours</option>
+            <option value="1-00:00:00">1 day</option>
+            <option value="2-00:00:00">2 days</option>
+            <option value="3-00:00:00">3 days</option>
+            <option value="7-00:00:00">7 days</option>
+            <option value="custom">Custom&#x2026;</option>
+          </select>
+          <input id="qos-edit-maxwall" type="text" placeholder="e.g. 2-00:00:00" style="display:none;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job (MaxTRESPerUser)</label>
@@ -870,7 +881,18 @@
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max Wall Time</label>
-          <input id="qos-create-maxwall" type="text" placeholder="e.g. 1-00:00:00" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <select id="qos-create-maxwall-sel" onchange="qosWallChange('create')" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);margin-bottom:4px">
+            <option value="">&#x2014; no limit &#x2014;</option>
+            <option value="04:00:00">4 hours</option>
+            <option value="08:00:00">8 hours</option>
+            <option value="12:00:00">12 hours</option>
+            <option value="1-00:00:00">1 day</option>
+            <option value="2-00:00:00">2 days</option>
+            <option value="3-00:00:00">3 days</option>
+            <option value="7-00:00:00">7 days</option>
+            <option value="custom">Custom&#x2026;</option>
+          </select>
+          <input id="qos-create-maxwall" type="text" placeholder="e.g. 2-00:00:00" style="display:none;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
           <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job</label>
@@ -1774,6 +1796,22 @@
     }catch(e){document.getElementById('users-tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
 
+  function _getWallVal(mode){
+    const sel = document.getElementById('qos-'+mode+'-maxwall-sel');
+    if(sel.value==='custom') return document.getElementById('qos-'+mode+'-maxwall').value.trim();
+    return sel.value; // '' means no limit
+  }
+
+  function qosWallChange(mode){
+    const sel = document.getElementById('qos-'+mode+'-maxwall-sel');
+    const inp = document.getElementById('qos-'+mode+'-maxwall');
+    if(sel.value==='custom'){
+      inp.style.display=''; inp.focus(); inp.value='';
+    } else {
+      inp.style.display='none'; inp.value='';
+    }
+  }
+
   async function loadQoS(){
     try{
       const data=await fetch(BASE+'/api/slurm/qos').then(r=>r.json());
@@ -2127,7 +2165,19 @@
     _qosEditName = q.name;
     document.getElementById('qos-edit-name').textContent = q.name;
     document.getElementById('qos-edit-priority').value = q.priority||'';
-    document.getElementById('qos-edit-maxwall').value = q.max_wall||'';
+    // Sync wall time dropdown
+    const wallVal = q.max_wall||'';
+    const wallSel = document.getElementById('qos-edit-maxwall-sel');
+    const wallOpts = Array.from(wallSel.options).map(o=>o.value);
+    if(!wallVal){
+      wallSel.value=''; document.getElementById('qos-edit-maxwall').style.display='none';
+    } else if(wallOpts.includes(wallVal)){
+      wallSel.value=wallVal; document.getElementById('qos-edit-maxwall').style.display='none';
+    } else {
+      wallSel.value='custom';
+      document.getElementById('qos-edit-maxwall').style.display='';
+      document.getElementById('qos-edit-maxwall').value=wallVal;
+    }
     document.getElementById('qos-edit-maxgpu').value = q.max_gpus_job||'';
     document.getElementById('qos-edit-grpgpu').value = q.grp_gpus||'';
     document.getElementById('qos-edit-maxjobs').value = q.max_jobs||'';
@@ -2151,7 +2201,7 @@
     const payload = {
       name: _qosEditName,
       priority: document.getElementById('qos-edit-priority').value.trim(),
-      max_wall: document.getElementById('qos-edit-maxwall').value.trim(),
+      max_wall: _getWallVal('edit'),
       max_gpus_job: document.getElementById('qos-edit-maxgpu').value.trim(),
       grp_gpus: document.getElementById('qos-edit-grpgpu').value.trim(),
       max_jobs: document.getElementById('qos-edit-maxjobs').value.trim(),
@@ -2183,6 +2233,8 @@
   }
 
   function openQosCreate(){
+    document.getElementById('qos-create-maxwall-sel').value='';
+    document.getElementById('qos-create-maxwall').style.display='none';
     ['qos-create-name','qos-create-priority','qos-create-maxwall','qos-create-maxgpu',
      'qos-create-grpgpu','qos-create-maxjobs','qos-create-maxsubmit'].forEach(id=>{
       document.getElementById(id).value='';
@@ -2206,7 +2258,7 @@
     const payload = {
       name,
       priority: document.getElementById('qos-create-priority').value.trim(),
-      max_wall: document.getElementById('qos-create-maxwall').value.trim(),
+      max_wall: _getWallVal('create'),
       max_gpus_job: document.getElementById('qos-create-maxgpu').value.trim(),
       grp_gpus: document.getElementById('qos-create-grpgpu').value.trim(),
       max_jobs: document.getElementById('qos-create-maxjobs').value.trim(),

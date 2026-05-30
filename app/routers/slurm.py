@@ -389,12 +389,15 @@ async def edit_qos(req: QosEditRequest):
         raise HTTPException(status_code=400, detail="Invalid QoS name")
     sets = []
     sets.append(f"Priority={req.priority or '0'}")
-    sets.append(f"MaxWall={req.max_wall or ''}")
-    sets.append(f"MaxJobsPerUser={req.max_jobs or ''}")
-    sets.append(f"MaxSubmitJobsPerUser={req.max_submit or ''}")
+    if req.max_wall:   sets.append(f"MaxWall={req.max_wall}")
+    else:              sets.append("MaxWall=")
+    if req.max_jobs:   sets.append(f"MaxJobsPerUser={req.max_jobs}")
+    else:              sets.append("MaxJobsPerUser=")
+    if req.max_submit: sets.append(f"MaxSubmitJobsPerUser={req.max_submit}")
+    else:              sets.append("MaxSubmitJobsPerUser=")
     sets.append(f"MaxTRESPerUser=gres/gpu={req.max_gpus_job}" if req.max_gpus_job else "MaxTRESPerUser=")
-    sets.append(f"GrpTRES=gres/gpu={req.grp_gpus}" if req.grp_gpus else "GrpTRES=")
-    sets.append(f"Flags={req.flags or ''}")
+    if req.grp_gpus: sets.append(f"GrpTRES=gres/gpu={req.grp_gpus}")
+    if req.flags:      sets.append(f"Flags={req.flags}")
     rc, out, err = _sacctmgr("modify", "qos", f"Name={req.name}", "set", *sets)
     if rc != 0:
         return {"ok": False, "msg": err or out}
