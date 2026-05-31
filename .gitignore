@@ -10,3 +10,4 @@ __pycache__/
 *.crt
 *.p12
 *.log
+config.yaml
