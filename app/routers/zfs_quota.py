@@ -9,7 +9,7 @@ def _load_zfs_cfg():
     import yaml
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
-    return (cfg.get("ssh",{}).get("user","profadmin"),
+    return (cfg.get("ssh",{}).get("user","svcaccount"),
             cfg.get("zfs",{}).get("datasets",[]))
 
 SSH_USER, ZFS_DATASETS = _load_zfs_cfg()

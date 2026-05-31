@@ -436,7 +436,7 @@
   </ul>
 
   <div class="nav-right">
-    <span class="cluster-badge">demo-hpc</span>
+    <span class="cluster-badge">hpc-portal</span>
     <span id="last-updated">—</span>
     <button class="refresh-btn" id="refresh-btn" onclick="loadNodes()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -560,7 +560,7 @@
 
   // Node classification
   function nodeGroup(name) {
-    if (/research_beta/i.test(name)) return 'researcher';
+    if (/adrian/i.test(name)) return 'researcher';
     if (/apps/i.test(name))   return 'apps';
     return 'compute';
   }

@@ -245,7 +245,7 @@ async def get_job_detail(job_id: str):
         "work_dir":    gpath("WorkDir"),
         "std_out":     gpath("StdOut"),
         "std_err":     gpath("StdErr"),
-        "cluster":     g("ClusterName") or "ECE HPC Cluster",
+        "cluster":     g("ClusterName") or "HPC Cluster",
         "raw":         raw,
     }
 
@@ -439,11 +439,14 @@ async def get_partitions():
         default_qos = default_qos_m.group(1) if default_qos_m else "N/A"
         allow_groups_m = re.search(r'AllowGroups=(\S+)', line)
         allow_groups = allow_groups_m.group(1) if allow_groups_m else "ALL"
+        deny_accounts_m = re.search(r'DenyAccounts=(\S+)', line)
+        deny_accounts = deny_accounts_m.group(1) if deny_accounts_m else ""
         partitions.append({
             "name": name,
             "allow_qos": allow_qos,
             "default_qos": default_qos,
             "allow_groups": allow_groups,
+            "deny_accounts": deny_accounts,
         })
     return {"partitions": partitions}
 
@@ -452,6 +455,7 @@ class PartitionQosRequest(BaseModel):
     partition: str
     allow_qos: str   # comma-separated list or "ALL"
     default_qos: Optional[str] = ""
+    deny_accounts: Optional[str] = ""
     write_conf: bool = True
 
 @router.post("/partition/qos")
@@ -464,6 +468,10 @@ async def set_partition_qos(req: PartitionQosRequest):
     cmd = [SCONTROL, "update", f"PartitionName={req.partition}", f"AllowQos={allow}"]
     if req.default_qos:
         cmd.append(f"QoS={req.default_qos}")
+    if req.deny_accounts is not None and req.deny_accounts.strip():
+        cmd.append(f"DenyAccounts={req.deny_accounts.strip()}")
+    else:
+        cmd.append("DenyAccounts=")
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     if r.returncode != 0:
         return {"ok": False, "msg": r.stderr.strip() or "scontrol failed"}
@@ -477,33 +485,32 @@ async def set_partition_qos(req: PartitionQosRequest):
                 capture_output=True, text=True, timeout=5
             ).stdout
 
-            def _patch_partition(text, part_name, allow_qos_val, def_qos_val):
+            def _patch_partition(text, part_name, allow_qos_val, def_qos_val, deny_accounts_val):
                 lines = text.splitlines(keepends=True)
                 in_block = False
                 result = []
                 i = 0
                 while i < len(lines):
                     line = lines[i]
-                    # Detect start of our partition block
                     if re.match(rf'\s*PartitionName={re.escape(part_name)}\b', line):
                         in_block = True
                     if in_block:
-                        # Remove existing AllowQos and QoS= lines
-                        if re.match(r'\s*AllowQos=', line):
+                        # Remove existing AllowQos, DenyAccounts lines
+                        if re.match(r'\s*AllowQos=', line) or re.match(r'\s*DenyAccounts=', line):
                             i += 1
                             continue
-                        # Replace QoS= line (partition default qos) if we have a new one
+                        # Replace QoS= line if we have a new one
                         if def_qos_val and re.match(r'\s*QoS=', line):
-                            # preserve continuation backslash if present
                             has_cont = line.rstrip().endswith('\\')
                             result.append(f"    QoS={def_qos_val}" + (" \\\n" if has_cont else "\n"))
                             i += 1
                             continue
-                        # Detect end of block: next PartitionName or empty line without backslash
+                        # End of block — insert AllowQos and DenyAccounts before this line
                         if not line.rstrip().endswith('\\') and not re.match(r'\s*PartitionName=', line):
-                            # End of block — insert AllowQos before this line
                             if allow_qos_val and allow_qos_val != "ALL":
                                 result.append(f"    AllowQos={allow_qos_val} \\\n")
+                            if deny_accounts_val and deny_accounts_val.strip():
+                                result.append(f"    DenyAccounts={deny_accounts_val.strip()} \\\n")
                             result.append(line)
                             in_block = False
                             i += 1
@@ -512,7 +519,7 @@ async def set_partition_qos(req: PartitionQosRequest):
                     i += 1
                 return "".join(result)
 
-            new_conf = _patch_partition(conf_text, req.partition, allow, req.default_qos or "")
+            new_conf = _patch_partition(conf_text, req.partition, allow, req.default_qos or "", req.deny_accounts or "")
             wr = subprocess.run(
                 ["sudo", "tee", SLURM_CONF],
                 input=new_conf, capture_output=True, text=True, timeout=10

@@ -574,13 +574,19 @@
       <span style="font-size:14px;font-weight:600">&#x2696; QoS Policies <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">sacctmgr</span></span>
       <div style="display:flex;gap:8px">
         <button class="sync-btn secondary" onclick="loadQoS()" style="padding:6px 14px;font-size:12px">&#x27f3; Refresh</button>
+        <button class="sync-btn secondary" id="swimlane-toggle-btn" onclick="toggleSwimlane()" style="padding:6px 14px;font-size:12px">&#x229e; Policy Map</button>
         <button class="sync-btn" onclick="openQosCreate()" style="padding:6px 14px;font-size:12px">+ New QoS</button>
       </div>
+    </div>
+
+    <!-- SWIMLANE POC -->
+    <div id="swimlane-view" style="display:none;margin-bottom:24px">
+      <div id="swimlane-content" style="overflow-x:auto"></div>
     </div>
     <div class="table-wrap"><table><thead><tr>
       <th style="padding:8px 14px">QoS Name</th>
       <th style="padding:8px 14px">Priority</th>
-      <th style="padding:8px 14px">Max GPUs/Job</th>
+      <th style="padding:8px 14px">Max GPUs/User</th>
       <th style="padding:8px 14px">Grp GPUs</th>
       <th style="padding:8px 14px">Max Jobs</th>
       <th style="padding:8px 14px">Max Wall</th>
@@ -600,8 +606,9 @@
         <th style="padding:8px 14px">Default QoS</th>
         <th style="padding:8px 14px">Allowed QoS</th>
         <th style="padding:8px 14px">Allow Groups</th>
+        <th style="padding:8px 14px">Deny Accounts</th>
         <th style="padding:8px 14px">Actions</th>
-      </tr></thead><tbody id="partition-qos-tbody"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
+      </tr></thead><tbody id="partition-qos-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
     </div>
 
     <!-- SECTION 3: QoS Lookup -->
@@ -671,11 +678,11 @@
             <input id="cg-name" type="text" placeholder="e.g. ml_intro_2026_sem2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
           <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Add as child of (parent HPC group)</label>
             <select id="cg-parent" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);outline:none">
-              <option value="hpc_course_students">hpc_course_students</option>
+              <option value="hpc_students">hpc_students</option>
               <option value="hpc_researchers">hpc_researchers</option>
               <option value="hpc_faculty">hpc_faculty</option>
-              <option value="hpc_eeadmins">hpc_eeadmins</option>
-              <option value="hpc_permuter">hpc_permuter</option>
+              <option value="hpc_admins">hpc_admins</option>
+              <option value="hpc_researchB">hpc_researchB</option>
               <option value="hpc_matlab_users">hpc_matlab_users</option>
             </select></div>
           <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Description (optional)</label>
@@ -710,7 +717,7 @@
   <div class="tab-pane" id="pane-mail">
     <div style="font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px">
       ✉ Send Cluster Mail
-      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · auth.ad.bgu.ac.il</span>
+      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ldap.example.com</span>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Compose and send an announcement to one or more AD groups. Members are resolved recursively including nested groups.</div>
 
@@ -750,7 +757,7 @@
 
           <div>
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">From</label>
-            <input type="text" value="ece-hpc@bgu.ac.il" disabled
+            <input type="text" value="hpc-admin@example.com" disabled
               style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--muted)">
           </div>
 
@@ -829,7 +836,7 @@
           <input id="qos-edit-maxwall" type="text" placeholder="e.g. 2-00:00:00" style="display:none;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job (MaxTRESPerUser)</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/User (MaxTRESPerUser)</label>
           <input id="qos-edit-maxgpu" type="text" placeholder="e.g. 2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
@@ -872,7 +879,7 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">QoS Name *</label>
-        <input id="qos-create-name" type="text" placeholder="e.g. vilenchik_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <input id="qos-create-name" type="text" placeholder="e.g. researchA_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div>
@@ -895,7 +902,7 @@
           <input id="qos-create-maxwall" type="text" placeholder="e.g. 2-00:00:00" style="display:none;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/Job</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Max GPUs/User (MaxTRESPerUser)</label>
           <input id="qos-create-maxgpu" type="text" placeholder="e.g. 4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
         </div>
         <div>
@@ -938,12 +945,14 @@
         <button onclick="closeModal('qos-assign-modal')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px">&#x00d7;</button>
       </div>
       <div style="margin-bottom:12px">
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Username</label>
-        <input id="qos-assign-user" type="text" placeholder="e.g. jsmith" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Username(s) <span style="color:var(--accent);font-weight:400">comma or newline separated for bulk</span></label>
+        <textarea id="qos-assign-user" rows="3" placeholder="e.g. jsmith, admin1, admin2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);resize:vertical;outline:none"></textarea>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Account</label>
-        <input id="qos-assign-account" type="text" placeholder="e.g. research_vilenchik" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <select id="qos-assign-account" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+          <option value="">Loading accounts&#x2026;</option>
+        </select>
       </div>
       <div style="margin-bottom:16px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Set as default QoS?</label>
@@ -981,7 +990,18 @@
           <option value="">&#x2014; no change &#x2014;</option>
         </select>
       </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Deny Accounts <span style="font-size:11px;color:var(--danger)">(comma-separated Slurm accounts — blocked from this partition)</span></label>
+        <input type="text" id="pqos-deny-accounts" list="pqos-accounts-list" placeholder="e.g. research_groupA,research_groupB" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box">
+        <datalist id="pqos-accounts-list"></datalist>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Comma-separate multiple accounts. Type to autocomplete.</div>
+      </div>
       <div id="pqos-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
+      <div id="pqos-push-prompt" style="display:none;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <span style="flex:1;color:var(--text)">📡 Push updated <span class="mono">slurm.conf</span> to all nodes now?</span>
+        <button onclick="pushSlurmConfAfterEdit(true)" class="sync-btn" style="padding:5px 14px;font-size:12px">Yes, push</button>
+        <button onclick="pushSlurmConfAfterEdit(false)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;color:var(--muted)">Not now</button>
+      </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="closeModal('partition-qos-modal')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
         <button class="sync-btn" onclick="submitPartitionQos()">Apply</button>
@@ -1388,7 +1408,7 @@
     html += '<span class="jd-state" style="background:'+sc+'">'+( d.state||'—')+'</span>';
     html += '</div>';
     html += '<div class="jd-grid">';
-    html += f('Cluster',    d.cluster||'ECE HPC Cluster');
+    html += f('Cluster',    d.cluster||'HPC Cluster');
     html += f('User',       user);
     html += f('Account',    d.account);
     html += f('Partition',  d.partition);
@@ -1478,7 +1498,7 @@
     const tb=document.getElementById('sync-tbody');
     if(!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No nodes</td></tr>';return;}
     tb.innerHTML=nodes.map(nd=>{
-      const isMaster=nd.node==='hpc-master';
+      const isMaster=nd.node==='slurm-master';
       const cells=files.map(f=>{
         const r=nd.files?.[f.short];
         const st=r?.status||'PENDING';
@@ -1499,7 +1519,7 @@
     const btns=document.getElementById('file-push-buttons');
     const mismatches={};
     files.forEach(f=>{
-      const bad=nodes.filter(n=>n.node!=='hpc-master'&&(n.files?.[f.short]?.status==='MISMATCH'||n.files?.[f.short]?.status==='MISSING'));
+      const bad=nodes.filter(n=>n.node!=='slurm-master'&&(n.files?.[f.short]?.status==='MISMATCH'||n.files?.[f.short]?.status==='MISSING'));
       if(bad.length>0) mismatches[f.short]=bad.length;
     });
     if(Object.keys(mismatches).length===0){bar.style.display='none';return;}
@@ -1521,7 +1541,7 @@
       const r=nd.files?.[f.short]||{status:'PENDING',detail:''};
       const cls=STATUS_CLS[r.status]||'pending';
       const icon=STATUS_ICON[r.status]||'·';
-      const canPush=node!=='hpc-master'&&(r.status==='MISMATCH'||r.status==='MISSING');
+      const canPush=node!=='slurm-master'&&(r.status==='MISMATCH'||r.status==='MISSING');
       return `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:10px 14px;font-family:monospace;font-size:13px;font-weight:500">${f.short}</td>
         <td style="padding:10px 14px;font-size:12px;color:var(--muted)">${f.path}</td>
@@ -1582,7 +1602,7 @@
     const savBtn = document.getElementById('editor-save-btn');
     if(!ta.value.trim()){st.textContent='⚠ Nothing to save';st.style.color='var(--danger)';return;}
     const label = _editorMode==='slurm' ? 'slurm.conf' : 'hosts block';
-    if(!confirm('Save '+label+' to hpc-master?')) return;
+    if(!confirm('Save '+label+' to slurm-master?')) return;
     savBtn.disabled = true; savBtn.textContent = 'Saving…';
     st.textContent = ''; st.style.color = 'var(--muted)';
     const url  = _editorMode==='slurm' ? BASE+'/api/sync/file/slurm.conf' : BASE+'/api/sync/hosts-block';
@@ -1652,7 +1672,7 @@
         return`<span class="diff-line-ctx">${esc}</span>`;
       }).join('\n');
 
-      const canPush=data.diff&&node!=='hpc-master';
+      const canPush=data.diff&&node!=='slurm-master';
       panel.innerHTML=`
         <div class="diff-header">
           <span class="diff-title">${fileShort} — ${node}</span>
@@ -1696,7 +1716,7 @@
 
   async function pushFileToAll(fileShort){
     if(!syncData)return;
-    const targets=syncData.nodes.filter(n=>n.node!=='hpc-master'&&(n.files?.[fileShort]?.status==='MISMATCH'||n.files?.[fileShort]?.status==='MISSING')).map(n=>({node:n.node,file_short:fileShort}));
+    const targets=syncData.nodes.filter(n=>n.node!=='slurm-master'&&(n.files?.[fileShort]?.status==='MISMATCH'||n.files?.[fileShort]?.status==='MISSING')).map(n=>({node:n.node,file_short:fileShort}));
     if(!targets.length){alert(`${fileShort}: no mismatches to push`);return;}
     if(!confirm(`Push ${fileShort} to ${targets.length} node(s)?\n${targets.map(t=>t.node).join(', ')}`))return;
     const res=await fetch(BASE+'/api/sync/push-all-mismatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({targets})}).then(r=>r.json());
@@ -1712,10 +1732,10 @@
   let acctTabLoaded=false, selectedAcct='';
 
   const ACCT_COLORS={
-    'ece-admin':      'background:#fef2f2;color:#991b1b;border:1px solid #fecaca',
-    'research_adrian':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
-    'general_users':  'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
-    'course_students':'background:#fffbeb;color:#92400e;border:1px solid #fde68a',
+    'hpc-admin':      'background:#fef2f2;color:#991b1b;border:1px solid #fecaca',
+    'research_groupC':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
+    'general':  'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
+    'students':'background:#fffbeb;color:#92400e;border:1px solid #fde68a',
   };
   function acctColor(acc){
     if(ACCT_COLORS[acc]) return ACCT_COLORS[acc];
@@ -1796,6 +1816,155 @@
     }catch(e){document.getElementById('users-tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;}
   }
 
+  // ── SWIMLANE POC ─────────────────────────────────────────────────────────
+
+  let _swimlaneVisible = false;
+  let _partitionData = [];
+
+  function toggleSwimlane(){
+    _swimlaneVisible = !_swimlaneVisible;
+    const view = document.getElementById('swimlane-view');
+    const btn = document.getElementById('swimlane-toggle-btn');
+    if(_swimlaneVisible){
+      view.style.display = 'block';
+      btn.style.background = 'var(--accent)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'var(--accent)';
+      renderSwimlane();
+    } else {
+      view.style.display = 'none';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }
+  }
+
+  async function renderSwimlane(){
+    const el = document.getElementById('swimlane-content');
+    el.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px">Loading policy map…</div>';
+
+    // Fetch partitions if not yet loaded
+    let partitions = _partitionData;
+    if(!partitions.length){
+      try{
+        const pd = await fetch(BASE+'/api/slurm/partitions').then(r=>r.json());
+        partitions = pd.partitions || [];
+        _partitionData = partitions;
+      }catch(e){ el.innerHTML = '<div style="color:var(--danger);padding:20px">Failed to load partitions</div>'; return; }
+    }
+
+    const qos = qosData || [];
+    if(!qos.length){ el.innerHTML = '<div style="padding:20px;color:var(--muted)">Load QoS data first (hit Refresh)</div>'; return; }
+
+    // Color map per QoS tier
+    const tierColor = {
+      'admin':        '#534AB7',
+      'a6000_full':   '#185FA5',
+      'a6000_restricted': '#185FA5',
+      'researchA_4jobs':  '#0F6E56',
+      'researchB_4jobs':   '#0F6E56',
+      'course_interactive': '#BA7517',
+      'normal':       '#888780',
+    };
+    const tierBg = {
+      'admin':        'rgba(83,74,183,0.1)',
+      'a6000_full':   'rgba(24,95,165,0.12)',
+      'a6000_restricted': 'rgba(24,95,165,0.08)',
+      'researchA_4jobs':  'rgba(15,110,86,0.15)',
+      'researchB_4jobs':   'rgba(15,110,86,0.15)',
+      'course_interactive': 'rgba(186,119,23,0.1)',
+      'normal':       'rgba(136,135,128,0.07)',
+    };
+
+    // Max GPU for fill bar width calc
+    const gpuNum = g => { if(!g || g==='∞') return 999; const n=parseInt(g); return isNaN(n)?999:n; };
+    const maxGpu = Math.max(...qos.map(q=>gpuNum(q.max_gpus_job)));
+    const gpuFillPct = q => {
+      const n = gpuNum(q.max_gpus_job);
+      return n >= 999 ? 100 : Math.round((n/4)*100);
+    };
+
+    // Priority bar width
+    const maxPri = Math.max(...qos.map(q=>parseInt(q.priority)||0));
+    const priFill = q => Math.round(((parseInt(q.priority)||0)/maxPri)*100);
+
+    // Build cell for partition+qos intersection
+    const buildCell = (partition, q) => {
+      const allowQos = partition.allow_qos || 'ALL';
+      // For course_interactive: only show as allowed if partition explicitly lists it (never for ALL)
+      const explicitList = allowQos !== 'ALL' ? allowQos.split(',').map(s=>s.trim()) : [];
+      const allowed = allowQos === 'ALL'
+        ? q.name !== 'course_interactive'
+        : explicitList.includes(q.name);
+      const isDefault = partition.default_qos === q.name;
+      const isOver = (q.flags||'').includes('OverPartQOS') && allowQos !== 'ALL';
+      const c = tierColor[q.name] || 'var(--accent)';
+      const bg = tierBg[q.name] || 'rgba(100,160,255,0.07)';
+      const gpuLabel = q.max_gpus_job || '∞';
+      const wallLabel = q.max_wall || '∞';
+
+      if(!allowed){
+        return `<td style="border:0.5px solid var(--border);padding:0;min-width:100px">
+          <div style="display:flex;align-items:center;justify-content:center;height:62px;color:var(--border);font-size:18px">—</div>
+        </td>`;
+      }
+      const label = isDefault ? 'DEFAULT' : 'ALLOWED';
+      const labelColor = c;
+      const cellBg = isDefault ? bg.replace('0.08','0.14').replace('0.07','0.12') : bg;
+      return `<td style="border:0.5px solid var(--border);padding:0;min-width:100px;background:${cellBg}">
+        <div style="padding:8px 10px;height:62px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+          <div style="font-size:11px;font-weight:600;color:${labelColor};font-family:monospace;letter-spacing:.04em">${label}</div>
+          <div style="height:3px;border-radius:2px;background:${labelColor};width:${gpuFillPct(q)}%;opacity:.7;margin:1px 0"></div>
+          <div style="font-size:10px;color:${labelColor};font-family:monospace;opacity:.85">${gpuLabel} gpu · ${wallLabel}</div>
+        </div>
+      </td>`;
+    };
+
+    // Build table
+    let html = `<table style="border-collapse:collapse;width:100%;font-family:monospace;font-size:12px">
+    <thead>
+      <tr>
+        <th style="border:0.5px solid var(--border);background:var(--surface);padding:8px 12px;text-align:left;min-width:130px;border-bottom:2px solid var(--border)">
+          <span style="font-size:9px;color:var(--muted)">partition ↓ &nbsp;·&nbsp; qos →</span>
+        </th>`;
+
+    qos.forEach(q => {
+      const c = tierColor[q.name] || 'var(--accent)';
+      const isOver = (q.flags||'').includes('OverPartQOS');
+      html += `<th style="border:0.5px solid var(--border);background:var(--surface);padding:0;min-width:100px;border-bottom:2px solid var(--border);vertical-align:bottom">
+        <div style="padding:8px 8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px">
+          ${isOver ? `<div style="font-size:9px;color:#1D9E75;letter-spacing:.05em">⬆ OVER</div>` : ''}
+          <div style="font-size:10px;font-weight:600;color:${c};text-align:center;line-height:1.3;word-break:break-all">${q.name}</div>
+          <div style="width:${priFill(q)}%;height:3px;border-radius:2px;background:${c};opacity:.7;min-width:4px"></div>
+          <div style="font-size:9px;color:var(--muted)">p${q.priority||'?'}</div>
+        </div>
+      </th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    partitions.forEach(p => {
+      const isOwner = p.name.includes('researchA') || p.name.includes('researchB');
+      const borderLeft = isOwner ? '3px solid #1D9E75' : '0.5px solid var(--border)';
+      html += `<tr>
+        <td style="border:0.5px solid var(--border);border-left:${borderLeft};background:var(--surface);padding:10px 12px">
+          <div style="font-size:11px;font-weight:500;color:${isOwner?'#1D9E75':'var(--text)'}">${p.name}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">${p.allow_groups||'ALL'}</div>
+        </td>`;
+      qos.forEach(q => { html += buildCell(p, q); });
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;padding-top:10px;border-top:0.5px solid var(--border)">
+      <div style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:5px"><div style="width:20px;height:3px;border-radius:2px;background:var(--accent)"></div>GPU fill bar = relative limit</div>
+      <div style="font-size:9px;color:#1D9E75">⬆ OVER = OverPartQOS — jumps queue</div>
+      <div style="font-size:9px;color:var(--muted)">Priority bar in header = relative weight</div>
+    </div>`;
+
+    el.innerHTML = html;
+  }
+
   function _getWallVal(mode){
     const sel = document.getElementById('qos-'+mode+'-maxwall-sel');
     if(sel.value==='custom') return document.getElementById('qos-'+mode+'-maxwall').value.trim();
@@ -1842,26 +2011,66 @@
     if(!target){ res.innerHTML='<span style="color:var(--danger);font-size:13px">Enter a username or account name</span>'; return; }
     btn.disabled=true; res.innerHTML='<span style="color:var(--muted);font-size:13px">Looking up…</span>';
     try{
-      const data = await fetch(`${BASE}/api/accounts/qos/lookup?target=${encodeURIComponent(target)}`).then(r=>r.json());
-      if(!data.ok || !data.rows.length){
+      const [lookupData, qosListData] = await Promise.all([
+        fetch(`${BASE}/api/accounts/qos/lookup?target=${encodeURIComponent(target)}`).then(r=>r.json()),
+        fetch(`${BASE}/api/slurm/qos`).then(r=>r.json()),
+      ]);
+      if(!lookupData.ok || !lookupData.rows.length){
         res.innerHTML=`<span style="color:var(--muted);font-size:13px">No Slurm associations found for <b>${target}</b></span>`;
         return;
       }
-      res.innerHTML = data.rows.map(row => `
-        <div style="padding:12px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg)">
-          <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
-            <span style="font-size:11px;color:var(--muted)">User <span style="font-size:13px;font-family:monospace;font-weight:600;color:var(--text);margin-left:4px">${row.user}</span></span>
-            <span style="font-size:11px;color:var(--muted)">Account <span style="font-size:13px;font-family:monospace;font-weight:600;color:var(--text);margin-left:4px">${row.account}</span></span>
+      const allQos = (qosListData.qos||[]).map(q=>q.name);
+      res.innerHTML = lookupData.rows.map((row,ri) => {
+        const currentQos = (row.other_qos||[]).concat(row.default_qos ? [row.default_qos] : []);
+        const checkboxes = allQos.map(q=>`
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
+            <input type="checkbox" class="lookup-qos-cb-${ri}" value="${q}" ${currentQos.includes(q)?'checked':''}>
+            <span class="mono">${q}</span>
+          </label>`).join('');
+        const defOpts = allQos.map(q=>`<option value="${q}" ${q===row.default_qos?'selected':''}>${q}</option>`).join('');
+        return `
+        <div style="padding:16px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;background:var(--bg)">
+          <div style="display:flex;gap:16px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:13px;font-family:monospace;font-weight:600">${row.user}</span>
+            <span style="font-size:12px;color:var(--muted)">@</span>
+            <span style="font-size:13px;font-family:monospace;color:var(--accent)">${row.account}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-size:11px;color:var(--muted);margin-right:2px">QoS</span>
-            <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--accent-lt);color:var(--accent);font-family:monospace;border:1px solid var(--accent)">${row.default_qos} <span style="font-size:10px;font-weight:500;opacity:.7">default</span></span>
-            ${row.other_qos.map(q=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:monospace;color:var(--text)">${q}</span>`).join('')}
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Default QoS</div>
+            <select class="lookup-defqos-${ri}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:monospace;background:var(--surface);color:var(--text)">${defOpts}</select>
           </div>
-        </div>`).join('');
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Allowed QoS</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">${checkboxes}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="sync-btn" onclick="applyLookupQoS(${ri},'${row.user}','${row.account}')" style="padding:5px 14px;font-size:12px">Apply Changes</button>
+            <span id="lookup-res-${ri}" style="font-size:12px"></span>
+          </div>
+        </div>`;
+      }).join('');
     }catch(e){
       res.innerHTML=`<span style="color:var(--danger);font-size:13px">Error: ${e.message}</span>`;
     }finally{ btn.disabled=false; }
+  }
+
+  async function applyLookupQoS(ri, user, account){
+    const res_el = document.getElementById('lookup-res-'+ri);
+    const defQos = document.querySelector('.lookup-defqos-'+ri).value;
+    const checked = [...document.querySelectorAll('.lookup-qos-cb-'+ri+':checked')].map(cb=>cb.value);
+    if(!defQos){ res_el.textContent='⚠ Select a default QoS'; res_el.style.color='var(--danger)'; return; }
+    if(!checked.includes(defQos)) checked.push(defQos);
+    const extraQos = checked.filter(q=>q!==defQos).join(',');
+    res_el.textContent='Applying…'; res_el.style.color='var(--muted)';
+    try{
+      // Use sacctmgr modify user directly via accounts update endpoint
+      const data = await fetch(BASE+'/api/accounts/update-user-qos', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username:user, account, defqos:defQos, extra_qos:extraQos})
+      }).then(r=>r.json());
+      res_el.textContent = data.ok ? '✓ Updated' : '⚠ '+(data.msg||data.detail||'Failed');
+      res_el.style.color = data.ok ? 'var(--ok)' : 'var(--danger)';
+    }catch(e){ res_el.textContent='⚠ '+e.message; res_el.style.color='var(--danger)'; }
   }
 
   // Modal helpers
@@ -2077,7 +2286,7 @@
             </div>
             <div style="display:flex;gap:8px">
               <button onclick="openAddMember('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ Add User</button>
-              ${g.name!=='hpc_eeadmins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button>`:''}
+              ${g.name!=='hpc_admins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button>`:''}
             </div>
           </div>
           ${g.direct_users.length?`
@@ -2278,30 +2487,51 @@
   function openQosAssign(qosName){
     document.getElementById('qos-assign-name').textContent = qosName;
     document.getElementById('qos-assign-user').value = '';
-    document.getElementById('qos-assign-account').value = '';
     document.getElementById('qos-assign-default').value = 'no';
     document.getElementById('qos-assign-result').textContent = '';
+    // Populate account dropdown from in-memory accountsList
+    const sel = document.getElementById('qos-assign-account');
+    const _populateAssignAccounts = () => {
+      if(accountsList.length){
+        sel.innerHTML = '<option value="">— select account —</option>' +
+          accountsList.map(a=>`<option value="${a}">${a}</option>`).join('');
+      } else {
+        // accountsList not loaded yet — fetch it
+        fetch(BASE+'/api/accounts/assoc').then(r=>r.json()).then(data=>{
+          accountsList = Object.keys(data.accounts||{});
+          sel.innerHTML = '<option value="">— select account —</option>' +
+            accountsList.map(a=>`<option value="${a}">${a}</option>`).join('');
+        }).catch(()=>{ sel.innerHTML='<option value="">Error loading accounts</option>'; });
+      }
+    };
+    _populateAssignAccounts();
     openModal('qos-assign-modal');
     setTimeout(()=>document.getElementById('qos-assign-user').focus(),100);
   }
 
   async function submitQosAssign(action){
     const qos = document.getElementById('qos-assign-name').textContent;
-    const user = document.getElementById('qos-assign-user').value.trim();
-    const account = document.getElementById('qos-assign-account').value.trim();
+    const rawUsers = document.getElementById('qos-assign-user').value;
+    const users = rawUsers.split(/[\s,]+/).map(u=>u.trim()).filter(Boolean);
+    const account = document.getElementById('qos-assign-account').value;
     const setDefault = document.getElementById('qos-assign-default').value === 'yes';
     const res_el = document.getElementById('qos-assign-result');
-    if(!user){ res_el.textContent='Username required'; res_el.style.color='var(--danger)'; return; }
+    if(!users.length){ res_el.textContent='Username required'; res_el.style.color='var(--danger)'; return; }
     if(!account){ res_el.textContent='Account required'; res_el.style.color='var(--danger)'; return; }
-    res_el.textContent='Applying…'; res_el.style.color='var(--muted)';
-    try{
-      const res = await fetch(BASE+'/api/accounts/qos/assign', {method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({qos, user, account, action, set_default:setDefault})
-      }).then(r=>r.json());
-      res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
-      res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
-    }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
+    res_el.textContent='Applying to '+users.length+' user(s)…'; res_el.style.color='var(--muted)';
+    const results = [];
+    for(const user of users){
+      try{
+        const res = await fetch(BASE+'/api/accounts/qos/assign', {method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({qos, user, account, action, set_default:setDefault})
+        }).then(r=>r.json());
+        results.push(res.ok ? '✓ '+user : '⚠ '+user+': '+(res.msg||'failed'));
+      }catch(e){ results.push('⚠ '+user+': '+e.message); }
+    }
+    const allOk = results.every(r=>r.startsWith('✓'));
+    res_el.innerHTML = results.join('<br>');
+    res_el.style.color = allOk ? 'var(--ok)' : 'var(--danger)';
   }
 
   // ── PARTITION QoS ──────────────────────────────────────────────────────
@@ -2315,6 +2545,7 @@
         fetch(BASE+'/api/slurm/qos').then(r=>r.json()),
       ]);
       const partitions = pd.partitions||[];
+      _partitionData = partitions;
       const allQos = (qd.qos||[]).map(q=>q.name);
       document.getElementById('partition-qos-tbody').innerHTML = partitions.map(p=>{
         const aqRaw = p.allow_qos||'ALL';
@@ -2327,13 +2558,14 @@
           <td style="padding:6px 14px"><span class="qos-badge">${p.default_qos||'—'}</span></td>
           <td style="padding:6px 14px">${aqDisplay}</td>
           <td style="padding:6px 14px;font-size:12px;color:var(--muted)">${p.allow_groups||'ALL'}</td>
+          <td style="padding:6px 14px;font-size:12px;color:var(--danger)">${p.deny_accounts||'—'}</td>
           <td style="padding:6px 14px">
             <button class="node-menu-btn" onclick="openPartitionQos(${JSON.stringify(p).replace(/"/g,'&quot;')},${JSON.stringify(allQos).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
           </td>
         </tr>`;
       }).join('');
     }catch(e){
-      document.getElementById('partition-qos-tbody').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;
+      document.getElementById('partition-qos-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;
     }
   }
 
@@ -2341,6 +2573,34 @@
     _partitionCurrent = p.name;
     document.getElementById('pqos-part-name').textContent = p.name;
     document.getElementById('pqos-result').textContent = '';
+    document.getElementById('pqos-push-prompt').style.display = 'none';
+    document.getElementById('pqos-deny-accounts').value = p.deny_accounts || '';
+
+    // Populate accounts datalist — lazy load if needed
+    const _populateDenyAccountsList = (accounts) => {
+      const dl = document.getElementById('pqos-accounts-list');
+      dl.innerHTML = accounts.map(a => `<option value="${a}">`).join('');
+    };
+    if(accountsList.length){
+      _populateDenyAccountsList(accountsList);
+    } else {
+      fetch(BASE+'/api/accounts/assoc').then(r=>r.json()).then(data=>{
+        accountsList = Object.keys(data.accounts||{});
+        _populateDenyAccountsList(accountsList);
+      }).catch(()=>{});
+    }
+
+    // Autocomplete last comma-separated token
+    const inp = document.getElementById('pqos-deny-accounts');
+    inp.oninput = function(){
+      const parts = this.value.split(',');
+      const last = parts[parts.length-1].trim();
+      const dl = document.getElementById('pqos-accounts-list');
+      dl.innerHTML = accountsList
+        .filter(a => a.startsWith(last))
+        .map(a => `<option value="${parts.slice(0,-1).concat(a).join(',')}">`)
+        .join('');
+    };
     const current = p.allow_qos==='ALL' ? [] : (p.allow_qos||'').split(',').filter(Boolean);
     // Build checkboxes
     document.getElementById('pqos-checkboxes').innerHTML = allQos.map(q=>`
@@ -2361,15 +2621,54 @@
     const checked = [...document.querySelectorAll('#pqos-checkboxes input:checked')].map(cb=>cb.value);
     const allow_qos = checked.length ? checked.join(',') : 'ALL';
     const default_qos = document.getElementById('pqos-default-qos').value;
+    const deny_accounts = document.getElementById('pqos-deny-accounts').value.trim();
     try{
       const res = await fetch(BASE+'/api/slurm/partition/qos', {method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({partition:_partitionCurrent, allow_qos, default_qos, write_conf:true})
+        body:JSON.stringify({partition:_partitionCurrent, allow_qos, default_qos, deny_accounts, write_conf:true})
       }).then(r=>r.json());
       res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
       res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
-      if(res.ok) setTimeout(()=>{ closeModal('partition-qos-modal'); loadPartitions(); }, 1200);
+      if(res.ok){
+        // Show push prompt inside the modal
+        const pushPrompt = document.getElementById('pqos-push-prompt');
+        pushPrompt.style.display = 'flex';
+      }
     }catch(e){ res_el.textContent='Error: '+e.message; res_el.style.color='var(--danger)'; }
+  }
+
+  async function pushSlurmConfAfterEdit(push){
+    const pushPrompt = document.getElementById('pqos-push-prompt');
+    pushPrompt.style.display = 'none';
+    closeModal('partition-qos-modal');
+    loadPartitions();
+    if(!push) return;
+    if(!confirm('This will push slurm.conf to all nodes with mismatches.\nProceed?')) return;
+    try{
+      // Run sync check first to get node list, then push slurm.conf to all mismatches
+      const checkRes = await fetch(BASE+'/api/sync/check-all').then(r=>r.json());
+      const nodes = checkRes.nodes || [];
+      const targets = nodes
+        .filter(n => n.node !== 'slurm-master' && (n.files?.['slurm.conf']?.status === 'MISMATCH' || n.files?.['slurm.conf']?.status === 'MISSING'))
+        .map(n => ({node: n.node, file_short: 'slurm.conf'}));
+      if(!targets.length){
+        document.getElementById('pqos-result').textContent = '✓ slurm.conf: all nodes already up to date.';
+        document.getElementById('pqos-result').style.color = 'var(--ok)';
+        return;
+      }
+      const res = await fetch(BASE+'/api/sync/push-all-mismatches', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({targets})
+      }).then(r=>r.json());
+      const ok = res.results.filter(r=>r.ok).length;
+      const failed = targets.length - ok;
+      const msg = `✓ Pushed slurm.conf: ${ok}/${targets.length} node(s) succeeded` + (failed ? ` — ⚠ ${failed} failed` : '');
+      document.getElementById('pqos-result').textContent = msg;
+      document.getElementById('pqos-result').style.color = failed ? 'var(--danger)' : 'var(--ok)';
+    }catch(e){
+      document.getElementById('pqos-result').textContent = 'Push failed: '+e.message;
+      document.getElementById('pqos-result').style.color = 'var(--danger)';
+    }
   }
 
   // NODE MENU

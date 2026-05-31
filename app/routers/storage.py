@@ -25,7 +25,7 @@ def _load_storage_cfg():
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
     s = cfg.get("storage", {})
-    return (cfg.get("ssh",{}).get("user","profadmin"),
+    return (cfg.get("ssh",{}).get("user","svcaccount"),
             s.get("prometheus","http://localhost:9090"),
             s.get("nodes",[]),
             s.get("backup_nodes",[]),
@@ -329,7 +329,7 @@ def _df_node(node: str) -> dict:
             if len(parts) < 6:
                 continue
             mp = parts[-1]
-            # Normalize double /mnt/mnt/ prefix (truenas1 quirk)
+            # Normalize double /mnt/mnt/ prefix (storage1 quirk)
             if mp.startswith("/mnt/mnt/"):
                 mp = mp[4:]  # strip leading /mnt -> /mnt/tank1/...
             if not mp.startswith("/mnt/tank"):
@@ -360,7 +360,7 @@ def _df_node(node: str) -> dict:
         arc   = _fetch_arc_stats(node)
         snaps = _fetch_snapshots(node)
         # Fetch replication tasks for backup nodes
-        repls = _fetch_replication_tasks(node) if node in ["truenas1"] else []
+        repls = _fetch_replication_tasks(node) if node in ["storage1"] else []
         return {"node": node, "online": True, "error": "", "mounts": mounts,
                 "arc": arc, "snapshots": snaps, "replications": repls}
     except Exception as e:

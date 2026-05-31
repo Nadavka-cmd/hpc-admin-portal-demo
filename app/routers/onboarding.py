@@ -42,24 +42,24 @@ from app.routers.ad_mgmt import (
 router = APIRouter()
 
 SACCTMGR = "/opt/slurm/bin/sacctmgr"
-SSH_USER = "demo-admin"
+SSH_USER = "svcaccount"
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
 
-EE_OU = "OU=Departments,DC=example,DC=local"
+EE_OU = "OU=IT,OU=Departments,DC=ldap,DC=example,DC=com"
 
 HPC_PARENT_GROUPS = [
     "hpc_researchers",
-    "hpc_course_students",
+    "hpc_students",
     "hpc_faculty",
-    "hpc_eeadmins",
+    "hpc_admins",
     "hpc_matlab_users",
-    "hpc_research_alpha",
-    "hpc_research_beta",
+    "hpc_researchB",
+    "hpc_adrian",
 ]
 
 ZFS_DATASETS = [
-    {"label": "home (storage-a)",     "host": "storage-a.example.local", "dataset": "tank2/home",     "idx": 0},
-    {"label": "projects (storage-b)", "host": "storage-b.example.local", "dataset": "tank3/projects", "idx": 1},
+    {"label": "home (storage2)",     "host": "10.0.0.20", "dataset": "tank2/home",     "idx": 0},
+    {"label": "projects (storage3)", "host": "10.0.0.30", "dataset": "tank3/projects", "idx": 1},
 ]
 
 QUOTA_PRESETS = ["none", "50G", "100G", "200G", "500G", "1T", "2T", "5T"]
@@ -632,7 +632,7 @@ def _get_skel_profiles() -> dict:
 
 def _get_home_base() -> str:
     cfg = _load_config()
-    return cfg.get("onboarding", {}).get("home_base", "/demo/home")
+    return cfg.get("onboarding", {}).get("home_base", "/storage/home")
 
 def _ensure_homedir(username: str) -> dict:
     home_base = _get_home_base()

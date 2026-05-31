@@ -17,7 +17,7 @@ def _load_mail_cfg():
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
     l = cfg.get("ldap", {})
     m = cfg.get("mail", {})
-    return (l.get("uri","ldap://localhost"), l.get("base",""),
+    return (l.get("uri","ldap://ldap.example.com"), l.get("base",""),
             m.get("msmtp","/usr/bin/msmtp"), m.get("from_addr",""))
 
 LDAP_URI, LDAP_BASE, MSMTP, FROM_ADDR = _load_mail_cfg()
@@ -25,7 +25,7 @@ LDAP_URI, LDAP_BASE, MSMTP, FROM_ADDR = _load_mail_cfg()
 
 def _get_mail_groups() -> dict:
     """Query AD for all top-level groups under the HPC OU."""
-    HPC_OU = "OU=HPC,OU=EE,OU=Departments,DC=auth,DC=ad,DC=bgu,DC=ac,DC=il"
+    HPC_OU = "OU=HPC,OU=IT,OU=Departments,DC=ldap,DC=example,DC=com"
     _require_auth()
     rc, out, err = _ldap_run([
         "ldapsearch", "-H", LDAP_URI, "-x",

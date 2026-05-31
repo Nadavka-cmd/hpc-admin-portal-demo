@@ -7,7 +7,7 @@ from pathlib import Path
 from app.routers import slurm, storage, config_sync, accounts, ad_mgmt, zfs_quota, awx, onboarding, mail
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-app = FastAPI(title="HPC Portal Demo", version="0.1.0")
+app = FastAPI(title="HPC Portal", version="0.1.0", root_path="/hpc-portal")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 

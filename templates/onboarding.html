@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Onboarding Wizard — demo-hpc</title>
+  <title>Onboarding Wizard — hpc-portal</title>
   <style>
     :root {
       --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
@@ -169,13 +169,13 @@
 <body>
 
 <nav>
-  <span class="brand">demo-hpc</span>
+  <span class="brand">hpc-portal</span>
   <a href="/slurm">Slurm Admin</a>
   <a href="/storage">Storage</a>
   <a href="/actions">Automation</a>
   <a href="/onboarding" class="active">Onboarding</a>
   <div class="spacer"></div>
-  <span class="hostname">demo-master</span>
+  <span class="hostname">slurm-master</span>
 </nav>
 
 <div class="page">
@@ -207,7 +207,7 @@
           <div id="ou-ad-auth" class="ad-auth-block" style="display:none">
             <div class="ad-title">⚠ AD Authentication Required for Group Membership</div>
             <div class="ad-auth-row">
-              <input type="text" id="ou-ad-user" placeholder="admin@ad.example.local" />
+              <input type="text" id="ou-ad-user" placeholder="admin@ldap.example.com" />
               <input type="password" id="ou-ad-pass" placeholder="Password" />
               <button class="btn btn-secondary" onclick="adAuth('ou')">Authenticate</button>
             </div>
@@ -256,11 +256,11 @@
           <div id="ou-quota-fields">
             <div class="row2">
               <div class="field">
-                <label>Home quota (storage-a)</label>
+                <label>Home quota (storage2)</label>
                 <div class="radio-pills" id="ou-home-quota"></div>
               </div>
               <div class="field">
-                <label>Projects quota (storage-b)</label>
+                <label>Projects quota (storage3)</label>
                 <div class="radio-pills" id="ou-proj-quota"></div>
               </div>
             </div>
@@ -330,11 +330,11 @@
           <div id="og-quota-fields" style="display:none">
             <div class="row2">
               <div class="field">
-                <label>Home quota (storage-a)</label>
+                <label>Home quota (storage2)</label>
                 <div class="radio-pills" id="og-home-quota"></div>
               </div>
               <div class="field">
-                <label>Projects quota (storage-b)</label>
+                <label>Projects quota (storage3)</label>
                 <div class="radio-pills" id="og-proj-quota"></div>
               </div>
             </div>
@@ -369,7 +369,7 @@
           <div id="fu-ad-auth" class="ad-auth-block" style="display:none">
             <div class="ad-title">⚠ AD Authentication Required to Remove Group Memberships</div>
             <div class="ad-auth-row">
-              <input type="text" id="fu-ad-user" placeholder="admin@ad.example.local" />
+              <input type="text" id="fu-ad-user" placeholder="admin@ldap.example.com" />
               <input type="password" id="fu-ad-pass" placeholder="Password" />
               <button class="btn btn-secondary" onclick="adAuth('fu')">Authenticate</button>
             </div>

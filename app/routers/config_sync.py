@@ -14,10 +14,10 @@ def _get_ssh_user():
     import yaml
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
-    return cfg.get("ssh",{}).get("user","profadmin")
+    return cfg.get("ssh",{}).get("user","svcaccount")
 
 SSH_USER = _get_ssh_user()
-MASTER   = "hpc-master"
+MASTER   = "slurm-master"
 SINFO    = "/opt/slurm/bin/sinfo"
 SCONTROL = "/opt/slurm/bin/scontrol"
 
@@ -157,7 +157,7 @@ def _check_hosts(node: str) -> dict:
 def _check_file(local_path: str, node: str, remote_path: str) -> dict:
     if local_path == "/etc/hosts":
         return _check_hosts(node)
-    # Check file exists on master — handle PermissionError (file exists but not readable by profadmin)
+    # Check file exists on master — handle PermissionError (file exists but not readable by svcaccount)
     try:
         exists = Path(local_path).exists()
     except PermissionError:
@@ -429,4 +429,4 @@ async def save_file(file_key: str, req: FileContentRequest):
     )
     if r.returncode != 0:
         raise HTTPException(status_code=500, detail=r.stderr.strip() or "Write failed")
-    return {"ok": True, "msg": f"Saved {path} on hpc-master"}
+    return {"ok": True, "msg": f"Saved {path} on slurm-master"}

@@ -276,7 +276,7 @@
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">Variables (optional, YAML or JSON)<button type="button" onclick="fillVarsTemplate()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11px;cursor:pointer;color:var(--text);font-family:inherit">📋 Use Template</button></label>
-          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 132.72.x.x"></textarea>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.0.x"></textarea>
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label">Add to groups</label>
@@ -383,11 +383,11 @@
             <div id="ou-quota-fields">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage2)</label>
                   <div id="ou-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage3)</label>
                   <div id="ou-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -468,7 +468,7 @@
                 </div>
                 <div id="og-new-account-row" style="display:none;margin-top:8px">
                   <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">New Account Name</label>
-                  <input type="text" id="og-new-account-name" placeholder="e.g. research_arnon"
+                  <input type="text" id="og-new-account-name" placeholder="e.g. research_groupA"
                     style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
                 </div>
               </div>
@@ -495,11 +495,11 @@
             <div id="og-quota-fields" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage2)</label>
                   <div id="og-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage3)</label>
                   <div id="og-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
