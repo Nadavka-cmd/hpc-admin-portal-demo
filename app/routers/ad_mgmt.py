@@ -7,9 +7,14 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-LDAP_URI  = "ldap://auth.ad.bgu.ac.il"
-LDAP_BASE = "DC=auth,DC=ad,DC=bgu,DC=ac,DC=il"
-HPC_OU    = "OU=HPC,OU=EE,OU=Departments,DC=auth,DC=ad,DC=bgu,DC=ac,DC=il"
+def _load_ldap_cfg():
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
+    l = cfg.get("ldap", {})
+    return l.get("uri","ldap://localhost"), l.get("base",""), l.get("hpc_ou",""), l.get("domain","")
+
+LDAP_URI, LDAP_BASE, HPC_OU, AD_DOMAIN = _load_ldap_cfg()
 
 HPC_PARENT_GROUPS = [
     "hpc_eeadmins",
@@ -199,7 +204,7 @@ class AddChildGroupRequest(BaseModel):
 
 @router.post("/auth")
 async def ad_auth(req: ADAuthRequest):
-    dn = req.username if "@" in req.username else f"{req.username}@auth.ad.bgu.ac.il"
+    dn = req.username if "@" in req.username else f"{req.username}@{AD_DOMAIN}"
     rc, out, err = _ldap_run([
         "ldapsearch", "-H", LDAP_URI, "-x",
         "-D", dn, "-w", req.password,

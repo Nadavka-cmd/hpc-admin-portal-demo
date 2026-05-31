@@ -12,20 +12,26 @@ router = APIRouter()
 
 # ── constants (will move to config.ini later) ──────────────────────────────
 SCRATCH_PATH   = "/scratch"
-PROMETHEUS     = "http://132.72.105.205:9090"
 WARN_DAYS      = 7
 STALE_DAYS     = 30
 SKIP_NAMES     = {"lost+found"}
-SSH_USER       = "profadmin"
 SINFO_BIN      = "/opt/slurm/bin/sinfo"
 SQUEUE_BIN     = "/opt/slurm/bin/squeue"
-
-STORAGE_NODES  = ["truenas2", "truenas3"]
-BACKUP_NODES   = ["truenas1"]
-
 IGNORE_MOUNTS  = {"/boot/efi", "/boot", "/run", "/opt/sentinelone/rpm_mount"}
 IGNORE_FSTYPES = {"tmpfs", "vfat"}
-NFS_MOUNTS     = {"/truenas/home", "/truenas/sif_images", "/truenas/datasets", "/truenas/projects"}
+
+def _load_storage_cfg():
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
+    s = cfg.get("storage", {})
+    return (cfg.get("ssh",{}).get("user","profadmin"),
+            s.get("prometheus","http://localhost:9090"),
+            s.get("nodes",[]),
+            s.get("backup_nodes",[]),
+            set(s.get("nfs_mounts",[])))
+
+SSH_USER, PROMETHEUS, STORAGE_NODES, BACKUP_NODES, NFS_MOUNTS = _load_storage_cfg()
 
 
 # ── helpers ────────────────────────────────────────────────────────────────

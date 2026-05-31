@@ -10,7 +10,13 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-SSH_USER = "profadmin"
+def _get_ssh_user():
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
+    return cfg.get("ssh",{}).get("user","profadmin")
+
+SSH_USER = _get_ssh_user()
 MASTER   = "hpc-master"
 SINFO    = "/opt/slurm/bin/sinfo"
 SCONTROL = "/opt/slurm/bin/scontrol"

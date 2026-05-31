@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-AWX_URL = "http://ee-ansible:30457"
+AWX_URL = ""  # loaded from config.yaml at startup
 AWX_TOKEN = None  # loaded from config at startup
 
 INVENTORY_ID = 12  # HPC Cluster V2

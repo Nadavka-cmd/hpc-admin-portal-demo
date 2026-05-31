@@ -5,12 +5,14 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-SSH_USER = "demo-admin"
+def _load_zfs_cfg():
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
+    return (cfg.get("ssh",{}).get("user","profadmin"),
+            cfg.get("zfs",{}).get("datasets",[]))
 
-ZFS_DATASETS = [
-    {"label": "home (storage-a)",    "host": "storage-a.example.local", "dataset": "tank2/home"},
-    {"label": "projects (storage-b)","host": "storage-b.example.local", "dataset": "tank3/projects"},
-]
+SSH_USER, ZFS_DATASETS = _load_zfs_cfg()
 
 QUOTA_PRESETS = ["none", "50G", "100G", "200G", "500G", "1T", "2T", "5T"]
 
