@@ -1,0 +1,115 @@
+# HPC Admin Portal — Configuration Example
+# Copy this file to config.yaml and fill in your values.
+# config.yaml is gitignored and must NEVER be committed to the repository.
+
+# ── Portal ────────────────────────────────────────────────────────────────────
+portal:
+  secret_key: "change-me-to-a-long-random-string"  # used for session signing
+  admin_users:                                       # AD usernames allowed to log in as admins
+    - admin1
+    - admin2
+
+# ── Slurm ─────────────────────────────────────────────────────────────────────
+slurm:
+  bin_path: /opt/slurm/bin    # path containing sinfo, squeue, scontrol, sacct, sacctmgr, scancel
+
+# ── SSH ───────────────────────────────────────────────────────────────────────
+# Service account used to SSH from the controller to compute/storage nodes.
+# Must have passwordless SSH keys and appropriate sudo rules on target nodes.
+ssh:
+  user: svcaccount
+
+# ── LDAP / Active Directory ───────────────────────────────────────────────────
+ldap:
+  uri: ldap://ldap.example.com                                          # LDAP/AD server URI
+  base: "DC=ldap,DC=example,DC=com"                                    # base DN for all searches
+  hpc_ou: "OU=HPC,OU=IT,OU=Departments,DC=ldap,DC=example,DC=com"     # OU where HPC groups live
+  domain: example.com                                                   # AD domain for user UPN login
+
+# ── Mail ──────────────────────────────────────────────────────────────────────
+# Used by the Send Mail feature to bulk-email AD group members.
+# Requires msmtp installed and configured on the controller node.
+mail:
+  msmtp: /usr/bin/msmtp           # path to msmtp binary
+  from_addr: hpc-admin@example.com  # sender address for outgoing mail
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+# Optional. Used for linking to dashboards from the portal.
+grafana:
+  url: http://monitor.example.com:3000   # Grafana base URL
+  token: ""                              # Grafana API token (leave empty if not used)
+
+# ── AWX / Ansible Tower ───────────────────────────────────────────────────────
+# Optional. Required for the Automation tab (job templates, inventory, onboarding).
+awx:
+  url: http://awx.example.com:30457   # AWX base URL
+  token: ""                           # AWX API token
+
+# ── Storage ───────────────────────────────────────────────────────────────────
+# Used by the Storage tab for filesystem metrics and backup status.
+storage:
+  prometheus: http://monitor.example.com:9090   # Prometheus URL for node_exporter metrics
+  nodes:                                         # storage/NFS nodes to monitor
+    - storage1
+    - storage2
+    - storage3
+  backup_nodes:                                  # nodes that run backup tasks (shown in Backups tab)
+    - storage1
+  nfs_mounts:                                    # NFS mount paths to track (shown in Filesystems tab)
+    - /home
+    - /projects
+    - /scratch
+
+# ── ZFS Quotas ────────────────────────────────────────────────────────────────
+# Used by the ZFS Quotas tab to read and set per-user quotas on ZFS datasets.
+# The ssh.user above must have passwordless SSH + sudo zfs access on each host.
+zfs:
+  datasets:
+    - label: "home (storage2)"       # display label in the portal UI
+      host: storage2                  # hostname of the ZFS storage node
+      dataset: tank2/home             # ZFS dataset path
+      idx: 0                          # display order index
+    - label: "projects (storage3)"
+      host: storage3
+      dataset: tank3/projects
+      idx: 1
+
+# ── Onboarding ────────────────────────────────────────────────────────────────
+# Used by the Onboarding Wizard to configure defaults for new user provisioning.
+onboarding:
+  home_base: /storage/home    # base path where new user home directories are created
+
+  # Default Slurm account, QoS, and quota settings per research group.
+  # Keys are group identifiers used internally by the portal.
+  group_defaults:
+    research_groupA:
+      account: research_groupA      # Slurm account to assign
+      defqos: research_full         # default QoS
+      extra_qos:                    # additional QoS to assign
+        - researchA_4jobs
+      quota_home: 100G              # ZFS home quota
+      quota_projects: 500G          # ZFS projects quota
+    research_groupB:
+      account: research_groupB
+      defqos: research_full
+      extra_qos:
+        - researchB_4jobs
+      quota_home: 100G
+      quota_projects: 500G
+    general:
+      account: general
+      defqos: normal
+      extra_qos: []
+      quota_home: 50G
+      quota_projects: 100G
+
+  # Skeleton profile definitions for new user home directory setup.
+  # Each profile defines symlinks to be created in the user's home directory.
+  skel_profiles:
+    researcher:
+      symlinks:
+        - { src: /opt/shared/scripts, dst: scripts }
+        - { src: /projects, dst: projects }
+    student:
+      symlinks:
+        - { src: /opt/shared/course, dst: course }
