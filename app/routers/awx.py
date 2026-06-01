@@ -496,3 +496,25 @@ async def remove_host(req: RemoveHostRequest):
     _awx_delete(f"/api/v2/hosts/{req.host_id}/")
 
     return {"ok": True, "msg": f"Removed '{req.hostname}' from inventory"}
+
+
+class EditHostRequest(BaseModel):
+    host_id: int
+    description: Optional[str] = ""
+    variables: Optional[str] = ""
+
+
+@router.post("/inventory/edit-host")
+async def edit_host(req: EditHostRequest):
+    payload = {
+        "description": req.description or "",
+        "variables": req.variables or "",
+    }
+
+    data = _awx_patch(f"/api/v2/hosts/{req.host_id}/", payload)
+
+    if "id" not in data:
+        detail = data.get("detail") or data.get("variables") or str(data)
+        return {"ok": False, "error": str(detail)}
+
+    return {"ok": True, "msg": f"Host {req.host_id} updated"}
