@@ -1253,6 +1253,17 @@
   // ══════════════════════════════════════════════════════════
   // JOBS
   // ══════════════════════════════════════════════════════════
+  function jobType(name){
+    const n=(name||'').toLowerCase();
+    if(/^(bash|sh|zsh|fish|csh|tcsh|srun|interactive)$/.test(n)) return 'shell';
+    if(/vscode|jupyter|pycharm|rstudio|matlab|tensorboard/.test(n)) return 'ood';
+    return 'batch';
+  }
+  const JOB_TYPE_BADGE={
+    shell: '<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:600;margin-left:5px" title="Interactive shell">INTERACTIVE</span>',
+    ood:   '<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:#ede9fe;color:#5b21b6;font-weight:600;margin-left:5px" title="OOD interactive app">OOD</span>',
+    batch: '',
+  };
   function stateKey(s){const u=s.toUpperCase();if(u.includes('RUNNING'))return'RUNNING';if(u.includes('PENDING'))return'PENDING';if(u.includes('FAILED'))return'FAILED';return'UNKNOWN';}
   function fmtGres(g){if(!g||g==='N/A'||g==='(null)'||g==='')return null;return g.replace(/^gpu:/i,'').replace(/_/g,' ');}
 
@@ -1289,7 +1300,7 @@
         <td><span class="job-id">${j.job_id}</span></td>
         <td><span class="mono">${j.user}</span></td>
         <td><span class="mono">${j.account||'—'}</span></td>
-        <td><span class="job-name" title="${j.name}">${j.name}</span></td>
+        <td><span class="job-name" title="${j.name}">${j.name}</span>${JOB_TYPE_BADGE[jobType(j.name)]}</td>
         <td><span class="job-state state-${sk}"><span class="dot"></span>${j.state}</span></td>
         <td><span class="time-cell ${sk==='RUNNING'?'running':''}">${j.time_run||'—'}</span></td>
         <td><span class="time-cell">${j.time_limit||'—'}</span></td>
