@@ -430,9 +430,15 @@
       <span class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>Skipped</span>
     </div>
     <div class="sync-matrix-wrap">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Compute Nodes</div>
       <table class="sync-matrix">
         <thead id="sync-thead"></thead>
         <tbody id="sync-tbody"><tr><td colspan="10" class="placeholder"><div class="icon">🔄</div><p>Click <strong>Check All</strong> to scan nodes</p></td></tr></tbody>
+      </table>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:20px;margin-bottom:8px">Infra Nodes</div>
+      <table class="sync-matrix">
+        <thead id="sync-infra-thead"></thead>
+        <tbody id="sync-infra-tbody"><tr><td colspan="10" class="placeholder"><p style="color:var(--muted);padding:16px">Click Check All</p></td></tr></tbody>
       </table>
     </div>
     <!-- PER-FILE QUICK PUSH BUTTONS -->
@@ -678,11 +684,11 @@
             <input id="cg-name" type="text" placeholder="e.g. ml_intro_2026_sem2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
           <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Add as child of (parent HPC group)</label>
             <select id="cg-parent" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);outline:none">
-              <option value="hpc_students">hpc_students</option>
+              <option value="hpc_course_students">hpc_course_students</option>
               <option value="hpc_researchers">hpc_researchers</option>
               <option value="hpc_faculty">hpc_faculty</option>
-              <option value="hpc_admins">hpc_admins</option>
-              <option value="hpc_researchB">hpc_researchB</option>
+              <option value="hpc_eeadmins">hpc_eeadmins</option>
+              <option value="hpc_permuter">hpc_permuter</option>
               <option value="hpc_matlab_users">hpc_matlab_users</option>
             </select></div>
           <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Description (optional)</label>
@@ -717,7 +723,7 @@
   <div class="tab-pane" id="pane-mail">
     <div style="font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px">
       ✉ Send Cluster Mail
-      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ldap.example.com</span>
+      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ad.example.local</span>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Compose and send an announcement to one or more AD groups. Members are resolved recursively including nested groups.</div>
 
@@ -757,7 +763,7 @@
 
           <div>
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">From</label>
-            <input type="text" value="hpc-admin@example.com" disabled
+            <input type="text" value="hpc-admin@example.local" disabled
               style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--muted)">
           </div>
 
@@ -879,7 +885,7 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">QoS Name *</label>
-        <input id="qos-create-name" type="text" placeholder="e.g. researchA_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <input id="qos-create-name" type="text" placeholder="e.g. vilenchik_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div>
@@ -946,7 +952,7 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Username(s) <span style="color:var(--accent);font-weight:400">comma or newline separated for bulk</span></label>
-        <textarea id="qos-assign-user" rows="3" placeholder="e.g. jsmith, admin1, admin2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);resize:vertical;outline:none"></textarea>
+        <textarea id="qos-assign-user" rows="3" placeholder="e.g. jsmith, kamanad, rulevich" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);resize:vertical;outline:none"></textarea>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Account</label>
@@ -992,7 +998,7 @@
       </div>
       <div style="margin-bottom:16px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Deny Accounts <span style="font-size:11px;color:var(--danger)">(comma-separated Slurm accounts — blocked from this partition)</span></label>
-        <input type="text" id="pqos-deny-accounts" list="pqos-accounts-list" placeholder="e.g. research_groupA,research_groupB" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box">
+        <input type="text" id="pqos-deny-accounts" list="pqos-accounts-list" placeholder="e.g. research_arnon,research_yitzhaky" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box">
         <datalist id="pqos-accounts-list"></datalist>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">Comma-separate multiple accounts. Type to autocomplete.</div>
       </div>
@@ -1051,7 +1057,7 @@
   let jobsData=[], jobFilter='ALL', jobSortKey='job_id', jobSortDir='desc';
   let jobsLoaded=false;
   // ── sync state ──
-  let syncData=null, syncFiles=[];
+  let syncData=null, syncFiles=[], syncInfra=[];
 
   // ══════════════════════════════════════════════════════════
   // SHARED
@@ -1408,7 +1414,7 @@
     html += '<span class="jd-state" style="background:'+sc+'">'+( d.state||'—')+'</span>';
     html += '</div>';
     html += '<div class="jd-grid">';
-    html += f('Cluster',    d.cluster||'HPC Cluster');
+    html += f('Cluster',    d.cluster||'ECE HPC Cluster');
     html += f('User',       user);
     html += f('Account',    d.account);
     html += f('Partition',  d.partition);
@@ -1514,8 +1520,32 @@
     updateFilePushButtons(nodes, files);
   }
 
-  function updateFilePushButtons(nodes, files){
-    const bar=document.getElementById('file-push-bar');
+  function buildSyncInfraHeaders(files){
+    const th=document.getElementById('sync-infra-thead');
+    th.innerHTML=`<tr><th>Node</th>${files.map(f=>`<th class="file-col" title="${f.path}\n${f.desc}">${f.short}<div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:2px">${f.desc}</div></th>`).join('')}</tr>`;
+  }
+
+  function buildSyncInfraRows(nodes, files){
+    const tb=document.getElementById('sync-infra-tbody');
+    if(!nodes||!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--muted)">No infra nodes</td></tr>';return;}
+    tb.innerHTML=nodes.map(nd=>{
+      const cells=files.map(f=>{
+        const r=nd.files?.[f.short];
+        const st=r?.status||'PENDING';
+        if(st==='SKIP'&&r?.detail==='not applicable'){
+          return `<td class="file-col"><span style="color:var(--border);font-size:16px" title="Not applicable">—</span></td>`;
+        }
+        const cls=STATUS_CLS[st]||'pending';
+        const icon=STATUS_ICON[st]||'·';
+        const title=`${nd.node} — ${f.short}\n${r?.detail||st}`;
+        return `<td class="file-col"><span class="sync-cell ${cls}" title="${title}" onclick="showDiff('${nd.node}','${f.short}')">${icon}</span></td>`;
+      }).join('');
+      const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span><span style="font-size:10px;color:var(--muted);margin-left:6px">infra</span>`;
+      return `<tr><td class="node-col">${nodeName}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  function updateFilePushButtons(nodes, files){    const bar=document.getElementById('file-push-bar');
     const btns=document.getElementById('file-push-buttons');
     const mismatches={};
     files.forEach(f=>{
@@ -1533,7 +1563,7 @@
 
   function showNodeDrilldown(node){
     if(!syncData) return;
-    const nd=syncData.nodes.find(n=>n.node===node);
+    const nd=[...syncData.nodes, ...syncInfra].find(n=>n.node===node);
     if(!nd) return;
     const panel=document.getElementById('diff-panel');
     panel.style.display='block';
@@ -1634,15 +1664,20 @@
 
     // Show pending state
     if(syncData){buildSyncRows(syncData.nodes.map(n=>({...n,files:Object.fromEntries(Object.keys(n.files).map(k=>[k,{status:'CHECKING'}]))})),syncFiles);}
+    if(syncInfra){buildSyncInfraRows(syncInfra.map(n=>({...n,files:Object.fromEntries(Object.keys(n.files).map(k=>[k,{status:'CHECKING'}]))})),syncFiles);}
 
     try{
       const data=await fetch(BASE+'/api/sync/check-all').then(r=>r.json());
       syncData=data;
       syncFiles=data.files;
+      syncInfra=data.infra||[];
       buildSyncHeaders(data.files);
       buildSyncRows(data.nodes, data.files);
+      buildSyncInfraHeaders(data.files);
+      buildSyncInfraRows(syncInfra, data.files);
 
-      const mismatches=data.nodes.flatMap(n=>data.files.map(f=>({node:n.node,file_short:f.short,status:n.files?.[f.short]?.status}))).filter(x=>x.status==='MISMATCH'||x.status==='MISSING');
+      const allNodes=[...data.nodes, ...syncInfra];
+      const mismatches=allNodes.flatMap(n=>data.files.map(f=>({node:n.node,file_short:f.short,status:n.files?.[f.short]?.status}))).filter(x=>x.status==='MISMATCH'||x.status==='MISSING');
       const bad=mismatches.length;
       st.textContent=bad?`${bad} mismatch${bad!==1?'es':''} found`:'All files in sync ✓';
       st.style.color=bad?'var(--danger)':'var(--ok)';
@@ -1700,7 +1735,8 @@
 
   async function pushAllMismatches(){
     if(!syncData)return;
-    const targets=syncData.nodes.flatMap(n=>syncFiles.map(f=>({node:n.node,file_short:f.short,status:n.files?.[f.short]?.status}))).filter(x=>x.status==='MISMATCH'||x.status==='MISSING').map(x=>({node:x.node,file_short:x.file_short}));
+    const allNodes=[...syncData.nodes, ...syncInfra];
+    const targets=allNodes.flatMap(n=>syncFiles.map(f=>({node:n.node,file_short:f.short,status:n.files?.[f.short]?.status}))).filter(x=>x.status==='MISMATCH'||x.status==='MISSING').map(x=>({node:x.node,file_short:x.file_short}));
     if(!targets.length)return;
     const btn=document.getElementById('sync-push-btn');
     btn.disabled=true;
@@ -1716,7 +1752,8 @@
 
   async function pushFileToAll(fileShort){
     if(!syncData)return;
-    const targets=syncData.nodes.filter(n=>n.node!=='slurm-master'&&(n.files?.[fileShort]?.status==='MISMATCH'||n.files?.[fileShort]?.status==='MISSING')).map(n=>({node:n.node,file_short:fileShort}));
+    const allNodes=[...syncData.nodes, ...syncInfra];
+    const targets=allNodes.filter(n=>n.node!=='slurm-master'&&(n.files?.[fileShort]?.status==='MISMATCH'||n.files?.[fileShort]?.status==='MISSING')).map(n=>({node:n.node,file_short:fileShort}));
     if(!targets.length){alert(`${fileShort}: no mismatches to push`);return;}
     if(!confirm(`Push ${fileShort} to ${targets.length} node(s)?\n${targets.map(t=>t.node).join(', ')}`))return;
     const res=await fetch(BASE+'/api/sync/push-all-mismatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({targets})}).then(r=>r.json());
@@ -1732,10 +1769,10 @@
   let acctTabLoaded=false, selectedAcct='';
 
   const ACCT_COLORS={
-    'hpc-admin':      'background:#fef2f2;color:#991b1b;border:1px solid #fecaca',
-    'research_groupC':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
-    'general':  'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
-    'students':'background:#fffbeb;color:#92400e;border:1px solid #fde68a',
+    'ece-admin':      'background:#fef2f2;color:#991b1b;border:1px solid #fecaca',
+    'research_adrian':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
+    'general_users':  'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
+    'course_students':'background:#fffbeb;color:#92400e;border:1px solid #fde68a',
   };
   function acctColor(acc){
     if(ACCT_COLORS[acc]) return ACCT_COLORS[acc];
@@ -1861,8 +1898,8 @@
       'admin':        '#534AB7',
       'a6000_full':   '#185FA5',
       'a6000_restricted': '#185FA5',
-      'researchA_4jobs':  '#0F6E56',
-      'researchB_4jobs':   '#0F6E56',
+      'vilenchik_4jobs':  '#0F6E56',
+      'permuter_4jobs':   '#0F6E56',
       'course_interactive': '#BA7517',
       'normal':       '#888780',
     };
@@ -1870,8 +1907,8 @@
       'admin':        'rgba(83,74,183,0.1)',
       'a6000_full':   'rgba(24,95,165,0.12)',
       'a6000_restricted': 'rgba(24,95,165,0.08)',
-      'researchA_4jobs':  'rgba(15,110,86,0.15)',
-      'researchB_4jobs':   'rgba(15,110,86,0.15)',
+      'vilenchik_4jobs':  'rgba(15,110,86,0.15)',
+      'permuter_4jobs':   'rgba(15,110,86,0.15)',
       'course_interactive': 'rgba(186,119,23,0.1)',
       'normal':       'rgba(136,135,128,0.07)',
     };
@@ -1944,7 +1981,7 @@
     html += `</tr></thead><tbody>`;
 
     partitions.forEach(p => {
-      const isOwner = p.name.includes('researchA') || p.name.includes('researchB');
+      const isOwner = p.name.includes('vilenchik') || p.name.includes('permuter');
       const borderLeft = isOwner ? '3px solid #1D9E75' : '0.5px solid var(--border)';
       html += `<tr>
         <td style="border:0.5px solid var(--border);border-left:${borderLeft};background:var(--surface);padding:10px 12px">
@@ -2286,7 +2323,7 @@
             </div>
             <div style="display:flex;gap:8px">
               <button onclick="openAddMember('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ Add User</button>
-              ${g.name!=='hpc_admins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button>`:''}
+              ${g.name!=='hpc_eeadmins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button>`:''}
             </div>
           </div>
           ${g.direct_users.length?`

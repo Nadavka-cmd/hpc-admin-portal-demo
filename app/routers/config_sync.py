@@ -14,7 +14,7 @@ def _get_ssh_user():
     import yaml
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
-    return cfg.get("ssh",{}).get("user","svcaccount")
+    return cfg.get("ssh", {}).get("user", "svcaccount")
 
 SSH_USER = _get_ssh_user()
 MASTER   = "slurm-master"
@@ -32,6 +32,13 @@ TRACKED_FILES = [
 
 HOSTS_BEGIN = "# BEGIN ANSIBLE MANAGED CLUSTER HOSTS"
 HOSTS_END   = "# END ANSIBLE MANAGED CLUSTER HOSTS"
+
+# Infra nodes that are not Slurm compute nodes but still need some files synced.
+# Maps hostname -> list of file shorts to check (others will be SKIP).
+INFRA_NODES = {
+    "ood-node":     ["slurm.conf", "sssd.conf", "hosts", "limits", "sysctl", "environ"],
+    "monitor-node": ["hosts"],
+}
 
 
 def _ssh(node: str, cmd: str, timeout: int = 15) -> tuple[int, str, str]:
@@ -220,10 +227,13 @@ def _discover_nodes() -> list[str]:
         return []
 
 
-def _check_node_all_files(node: str) -> dict:
+def _check_node_all_files(node: str, allowed: Optional[list] = None) -> dict:
     results = {}
     for local_path, remote_path, short, _ in TRACKED_FILES:
-        results[short] = _check_file(local_path, node, remote_path)
+        if allowed is not None and short not in allowed:
+            results[short] = {"status": "SKIP", "detail": "not applicable"}
+        else:
+            results[short] = _check_file(local_path, node, remote_path)
     return {"node": node, "files": results}
 
 
@@ -232,10 +242,11 @@ def _check_node_all_files(node: str) -> dict:
 @router.get("/nodes")
 async def get_sync_nodes():
     """Discover all nodes for config sync."""
-    nodes = _discover_nodes()
-    all_nodes = [MASTER] + [n for n in nodes if n != MASTER]
+    compute_nodes = _discover_nodes()
+    all_nodes = [MASTER] + [n for n in compute_nodes if n != MASTER]
     return {
         "nodes": all_nodes,
+        "infra_nodes": list(INFRA_NODES.keys()),
         "files": [{"short": s, "path": lp, "desc": d} for lp, _, s, d in TRACKED_FILES]
     }
 
@@ -243,16 +254,31 @@ async def get_sync_nodes():
 @router.get("/check-all")
 async def check_all():
     """Check all files on all nodes in parallel."""
-    nodes = _discover_nodes()
-    all_nodes = [MASTER] + [n for n in nodes if n != MASTER]
-    results = []
-    with ThreadPoolExecutor(max_workers=12) as ex:
-        futures = {ex.submit(_check_node_all_files, n): n for n in all_nodes}
-        for f in as_completed(futures):
-            results.append(f.result())
-    results.sort(key=lambda x: (x["node"] != MASTER, x["node"]))
+    compute_nodes = _discover_nodes()
+    all_compute = [MASTER] + [n for n in compute_nodes if n != MASTER]
+
+    results_compute = []
+    results_infra = []
+
+    tasks = {}
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        for n in all_compute:
+            tasks[ex.submit(_check_node_all_files, n, None)] = ("compute", n)
+        for n, allowed in INFRA_NODES.items():
+            tasks[ex.submit(_check_node_all_files, n, allowed)] = ("infra", n)
+        for f in as_completed(tasks):
+            group, _ = tasks[f]
+            if group == "compute":
+                results_compute.append(f.result())
+            else:
+                results_infra.append(f.result())
+
+    results_compute.sort(key=lambda x: (x["node"] != MASTER, x["node"]))
+    results_infra.sort(key=lambda x: x["node"])
+
     return {
-        "nodes": results,
+        "nodes": results_compute,
+        "infra": results_infra,
         "files": [{"short": s, "path": lp, "desc": d} for lp, _, s, d in TRACKED_FILES]
     }
 

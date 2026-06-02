@@ -20,3 +20,6 @@ prometheus:
 
 slurm:
   bin_path: "/usr/bin"
+
+ssh:
+  user: "svcaccount"
