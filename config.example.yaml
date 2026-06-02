@@ -23,3 +23,6 @@ slurm:
 
 ssh:
   user: "svcaccount"
+
+ssh:
+  user: "svcaccount"
