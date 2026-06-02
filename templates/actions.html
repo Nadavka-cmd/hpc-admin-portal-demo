@@ -268,7 +268,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label class="form-label">Hostname *</label>
-          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. hpc-node12" autocomplete="off">
+          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. compute-node1" autocomplete="off">
         </div>
         <div>
           <label class="form-label">Description (optional)</label>
@@ -276,7 +276,7 @@
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">Variables (optional, YAML or JSON)<button type="button" onclick="fillVarsTemplate()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11px;cursor:pointer;color:var(--text);font-family:inherit">📋 Use Template</button></label>
-          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 132.72.x.x"></textarea>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.0.x"></textarea>
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label">Add to groups</label>
@@ -717,7 +717,7 @@
         html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
           <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div><div style="font-size:14px;font-weight:700">${meta.label}</div><div style="font-size:12px;color:var(--muted)">${meta.sub}</div></div>
-            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. hpc-node12)" style="width:220px"></div>`:''}
+            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. compute-node1)" style="width:220px"></div>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
             ${items.map((t,i)=>`<div style="padding:16px 20px;${i<items.length-1?'border-right:1px solid var(--border)':''}">
