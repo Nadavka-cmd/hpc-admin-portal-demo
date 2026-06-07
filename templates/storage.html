@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <script>var BASE = {{ root_path | tojson }};</script>
+  <script>(function(){var t=localStorage.getItem("hpc-theme")||"light";document.documentElement.setAttribute("data-theme",t);}());</script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HPC Portal — Storage</title>
@@ -20,7 +22,7 @@
       --shadow-md:0 4px 12px rgba(0,0,0,.1),0 8px 32px rgba(0,0,0,.06);
     }
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif}
+    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
     .main-wrapper{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
     .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
     .main-content{flex:1;padding:28px 32px}
@@ -234,7 +236,64 @@
   
     /* ── Sidebar collapse ── */
     .main-wrapper{transition:margin-left .2s ease}
-</style>
+
+    /* ── DARK MODE ── */
+    [data-theme="dark"]{
+      --bg:#0f1117; --surface:#1a1d27; --border:#2a2d3a; --text:#e2e8f0; --muted:#64748b;
+      --accent:#3b82f6; --accent-lt:#1e3a5f;
+      --idle-bg:#052e16; --mixed-bg:#451a03; --drain-bg:#431407;
+      --down-bg:#450a0a; --alloc-bg:#2e1065; --unknown-bg:#1e293b;
+      --ok-bg:#052e16; --warn-bg:#451a03; --danger-bg:#450a0a; --active-bg:#2e1065;
+      --running-bg:#052e16; --pending-bg:#451a03; --failed-bg:#450a0a;
+      --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+      --shadow-hover:0 4px 12px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+      --shadow-md:0 4px 12px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+    }
+
+  
+    /* ── DARK SCROLLBAR ── */
+    [data-theme="dark"] ::-webkit-scrollbar{width:8px;height:8px}
+    [data-theme="dark"] ::-webkit-scrollbar-track{background:var(--bg)}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:4px}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:#3a3d4a}
+    /* ── DARK MODE: FILTER BUTTONS & MISC ── */
+    [data-theme="dark"] .filter-btn {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] .filter-btn.active {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+    }
+    [data-theme="dark"] .filter-btn:hover {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
+
+
+    /* ── DARK MODE: INPUTS, TEXTAREAS, SELECTS ── */
+    [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: var(--muted) !important;
+    }
+    /* Config sync master row */
+    [data-theme="dark"] .master-row td {
+      background: #1e2a3a !important;
+    }
+    /* Automation card banners */
+    [data-theme="dark"] .tmpl-card { background: var(--surface) !important; border-color: var(--border) !important; }
+    [data-theme="dark"] .tmpl-header { background: var(--bg) !important; color: var(--text) !important; }
+
+  </style>
 </head>
 <body>
 {% set current_page = 'storage' %}

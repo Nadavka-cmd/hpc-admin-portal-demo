@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <script>var BASE = {{ root_path | tojson }};</script>
+  <script>(function(){var t=localStorage.getItem("hpc-theme")||"light";document.documentElement.setAttribute("data-theme",t);}());</script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HPC Portal — Jobs</title>
@@ -82,6 +84,63 @@
     .empty-row td { text-align:center; padding:60px 20px; color:var(--muted); }
     .skeleton { background:linear-gradient(90deg,#f0f4f8 25%,#e2e8f0 50%,#f0f4f8 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; height:12px; display:inline-block; }
     @keyframes shimmer { to { background-position:-200% 0; } }
+  
+    /* ── DARK MODE ── */
+    .dm-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .15s}
+    .dm-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+    [data-theme="dark"]{
+      --bg:#0f1117; --surface:#1a1d27; --border:#2a2d3a; --text:#e2e8f0; --muted:#64748b;
+      --accent:#3b82f6; --accent-lt:#1e3a5f;
+      --idle-bg:#052e16; --mixed-bg:#451a03; --drain-bg:#431407;
+      --down-bg:#450a0a; --alloc-bg:#2e1065; --unknown-bg:#1e293b;
+      --running-bg:#052e16; --pending-bg:#451a03; --failed-bg:#450a0a;
+      --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+      --shadow-hover:0 4px 12px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+    }
+
+  
+    /* ── DARK SCROLLBAR ── */
+    [data-theme="dark"] ::-webkit-scrollbar{width:8px;height:8px}
+    [data-theme="dark"] ::-webkit-scrollbar-track{background:var(--bg)}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:4px}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:#3a3d4a}
+    /* ── DARK MODE: FILTER BUTTONS & MISC ── */
+    [data-theme="dark"] .filter-btn {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] .filter-btn.active {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+    }
+    [data-theme="dark"] .filter-btn:hover {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
+
+
+    /* ── DARK MODE: INPUTS, TEXTAREAS, SELECTS ── */
+    [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: var(--muted) !important;
+    }
+    /* Config sync master row */
+    [data-theme="dark"] .master-row td {
+      background: #1e2a3a !important;
+    }
+    /* Automation card banners */
+    [data-theme="dark"] .tmpl-card { background: var(--surface) !important; border-color: var(--border) !important; }
+    [data-theme="dark"] .tmpl-header { background: var(--bg) !important; color: var(--text) !important; }
+
   </style>
 </head>
 <body>
@@ -94,7 +153,8 @@
     <li><a href="{{ root_path }}/actions">Actions</a></li>
   </ul>
   <div class="nav-right">
-    <span class="cluster-badge">hpc-portal</span>
+        <button class="dm-nav-btn" id="dm-nav-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+    <span class="cluster-badge">ood-node</span>
     <span id="last-updated">—</span>
     <button class="refresh-btn" id="refresh-btn" onclick="loadJobs()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -246,6 +306,23 @@
 
   loadJobs();
   setInterval(loadJobs,30000);
+
+  function toggleDarkMode(){
+    var cur=document.documentElement.getAttribute('data-theme')||'light';
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('hpc-theme',next);
+    var btn=document.getElementById('dm-nav-btn');
+    if(btn) btn.textContent=next==='dark'?'☀️':'🌙';
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var btn=document.getElementById('dm-nav-btn');
+    if(btn){
+      var cur=document.documentElement.getAttribute('data-theme')||'light';
+      btn.textContent=cur==='dark'?'☀️':'🌙';
+    }
+  });
+
 </script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <script>var BASE = {{ root_path | tojson }};</script>
+  <script>(function(){var t=localStorage.getItem("hpc-theme")||"light";document.documentElement.setAttribute("data-theme",t);}());</script>
+
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HPC Portal — Automation</title>
@@ -18,7 +20,7 @@
       --shadow-md:0 4px 12px rgba(0,0,0,.1),0 8px 32px rgba(0,0,0,.06);
     }
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif}
+    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
     .main-wrapper{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
     .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
     .main-content{flex:1;padding:28px 32px}
@@ -96,7 +98,7 @@
     .output-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
     .output-close:hover{background:var(--border)}
     .output-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif}
+    body{display:flex;min-height:100vh;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
     .main-wrapper{margin-left:220px;flex:1;display:flex;flex-direction:column;min-width:0}
     .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
     .main-content{flex:1;padding:28px 32px}
@@ -158,7 +160,64 @@
 
     /* ── Sidebar collapse ── */
     .main-wrapper{transition:margin-left .2s ease}
-</style>
+
+    /* ── DARK MODE ── */
+    [data-theme="dark"]{
+      --bg:#0f1117; --surface:#1a1d27; --border:#2a2d3a; --text:#e2e8f0; --muted:#64748b;
+      --accent:#3b82f6; --accent-lt:#1e3a5f;
+      --idle-bg:#052e16; --mixed-bg:#451a03; --drain-bg:#431407;
+      --down-bg:#450a0a; --alloc-bg:#2e1065; --unknown-bg:#1e293b;
+      --ok-bg:#052e16; --warn-bg:#451a03; --danger-bg:#450a0a; --active-bg:#2e1065;
+      --running-bg:#052e16; --pending-bg:#451a03; --failed-bg:#450a0a;
+      --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+      --shadow-hover:0 4px 12px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+      --shadow-md:0 4px 12px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.3);
+    }
+
+  
+    /* ── DARK SCROLLBAR ── */
+    [data-theme="dark"] ::-webkit-scrollbar{width:8px;height:8px}
+    [data-theme="dark"] ::-webkit-scrollbar-track{background:var(--bg)}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:4px}
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:#3a3d4a}
+    /* ── DARK MODE: FILTER BUTTONS & MISC ── */
+    [data-theme="dark"] .filter-btn {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] .filter-btn.active {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+    }
+    [data-theme="dark"] .filter-btn:hover {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
+
+
+    /* ── DARK MODE: INPUTS, TEXTAREAS, SELECTS ── */
+    [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="dark"] input::placeholder,
+    [data-theme="dark"] textarea::placeholder {
+      color: var(--muted) !important;
+    }
+    /* Config sync master row */
+    [data-theme="dark"] .master-row td {
+      background: #1e2a3a !important;
+    }
+    /* Automation card banners */
+    [data-theme="dark"] .tmpl-card { background: var(--surface) !important; border-color: var(--border) !important; }
+    [data-theme="dark"] .tmpl-header { background: var(--bg) !important; color: var(--text) !important; }
+
+  </style>
 </head>
 <body>
 {% set current_page = 'actions' %}
@@ -227,7 +286,7 @@
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">Variables (optional, YAML or JSON)<button type="button" onclick="fillVarsTemplate()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11px;cursor:pointer;color:var(--text);font-family:inherit">📋 Use Template</button></label>
-          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.0.x"></textarea>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 132.72.x.x"></textarea>
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label">Add to groups</label>
@@ -334,11 +393,11 @@
             <div id="ou-quota-fields">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-node2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
                   <div id="ou-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-node3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
                   <div id="ou-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -446,11 +505,11 @@
             <div id="og-quota-fields" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage-node2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
                   <div id="og-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage-node3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
                   <div id="og-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -665,8 +724,8 @@
         const meta=GROUP_META[gkey]||{label:gkey,sub:'',color:'var(--bg)'};
         const isSteps=items.some(t=>t.step>0);
         const sharedLimitId=`limit-group-${gkey}`;
-        html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
-          <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        html+=`<div class="tmpl-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
+          <div class="tmpl-header" style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div><div style="font-size:14px;font-weight:700">${meta.label}</div><div style="font-size:12px;color:var(--muted)">${meta.sub}</div></div>
             ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. hpc-node12)" style="width:220px"></div>`:''}
           </div>
