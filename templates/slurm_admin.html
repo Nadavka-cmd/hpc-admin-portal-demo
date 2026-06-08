@@ -876,9 +876,9 @@
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Flags</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px">
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-overpartqos" value="OverPartQOS"> OverPartQOS <span style="color:var(--muted);font-size:11px">(exceed partition limits)</span></label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-parttimelimit" value="PartitionTimeLimit"> PartitionTimeLimit <span style="color:var(--muted);font-size:11px">(override partition time limit)</span></label>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-noreserve" value="NoReserve"> NoReserve</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-reqresv" value="RequiresReservation"> RequiresReservation</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="qos-flag-notlimited" value="NotLimited"> NotLimited</label>
         </div>
       </div>
       <div id="qos-edit-result" style="font-size:13px;min-height:18px;margin-bottom:12px"></div>
@@ -2467,9 +2467,10 @@
     // Set flags checkboxes
     const flags = (q.flags||'').split(',').map(f=>f.trim());
     document.getElementById('qos-flag-overpartqos').checked = flags.includes('OverPartQOS');
+    document.getElementById('qos-flag-parttimelimit').checked = flags.includes('PartitionTimeLimit');
     document.getElementById('qos-flag-noreserve').checked = flags.includes('NoReserve');
     document.getElementById('qos-flag-reqresv').checked = flags.includes('RequiresReservation');
-    document.getElementById('qos-flag-notlimited').checked = flags.includes('NotLimited');
+
     document.getElementById('qos-edit-result').textContent = '';
     openModal('qos-edit-modal');
   }
@@ -2477,7 +2478,7 @@
   async function submitQosEdit(){
     const res_el = document.getElementById('qos-edit-result');
     res_el.textContent='Saving…'; res_el.style.color='var(--muted)';
-    const flagVals = ['qos-flag-overpartqos','qos-flag-noreserve','qos-flag-reqresv','qos-flag-notlimited']
+    const flagVals = ['qos-flag-overpartqos','qos-flag-parttimelimit','qos-flag-noreserve','qos-flag-reqresv']
       .filter(id=>document.getElementById(id).checked)
       .map(id=>document.getElementById(id).value).join(',');
     const payload = {
