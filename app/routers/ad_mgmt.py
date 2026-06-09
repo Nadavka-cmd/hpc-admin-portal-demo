@@ -12,17 +12,17 @@ def _load_ldap_cfg():
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
     l = cfg.get("ldap", {})
-    return l.get("uri","ldap://ldap.example.com"), l.get("base",""), l.get("hpc_ou",""), l.get("domain","")
+    return l.get("uri","ldap://localhost"), l.get("base",""), l.get("hpc_ou",""), l.get("domain","")
 
 LDAP_URI, LDAP_BASE, HPC_OU, AD_DOMAIN = _load_ldap_cfg()
 
 HPC_PARENT_GROUPS = [
-    "hpc_admins",
+    "hpc_eeadmins",
     "hpc_researchers",
     "hpc_faculty",
-    "hpc_students",
+    "hpc_course_students",
     "hpc_adrian",
-    "hpc_researchB",
+    "hpc_permuter",
     "hpc_matlab_users",
 ]
 
@@ -110,6 +110,19 @@ def _get_group_members(group_name: str) -> list:
             if m:
                 members.append(m.group(1))
     return members
+
+
+def _get_all_users_recursive(group_name: str, depth: int = 0, _seen: set = None) -> list:
+    if _seen is None:
+        _seen = set()
+    if group_name in _seen or depth > 5:
+        return []
+    _seen.add(group_name)
+    typed = _get_group_members_typed(group_name)
+    users = list(typed["users"])
+    for cg in typed["groups"]:
+        users += _get_all_users_recursive(cg["name"], depth + 1, _seen)
+    return list(dict.fromkeys(users))
 
 
 def _get_group_members_typed(group_name: str) -> dict:
@@ -247,28 +260,23 @@ async def get_groups():
         children_detail = []
         for cg in child_group_dns:
             cg_typed = _get_group_members_typed(cg["name"])
+            all_members = _get_all_users_recursive(cg["name"])
             children_detail.append({
                 "name": cg["name"],
-                "members": cg_typed["users"],
+                "members": all_members,
                 "child_groups": cg_typed["groups"],
-                "count": len(cg_typed["users"]) + len(cg_typed["groups"]),
+                "count": len(all_members),
             })
 
+        all_child_members = list(dict.fromkeys(m for cg in children_detail for m in cg["members"]))
         resolved[group] = {
             "name": group,
             "direct_users": users,
             "child_groups": children_detail,
-            "total_members": len(users) + len(child_group_dns),
+            "total_members": len(dict.fromkeys(list(users) + all_child_members)),
         }
 
-    # Collect all group names that appear as children of any other group
-    child_names = set()
-    for entry in resolved.values():
-        for cg in entry["child_groups"]:
-            child_names.add(cg["name"])
-
-    # Only emit top-level entries for groups not nested under another
-    result = [v for k, v in resolved.items() if k not in child_names]
+    result = list(resolved.values())
 
     return {"groups": result}
 
@@ -360,6 +368,31 @@ async def create_group(req: CreateGroupRequest):
         return {"ok": False, "error": f"Group '{req.name}' created but nesting failed: {err2 or out2}"}
 
     return {"ok": True, "msg": f"Created '{req.name}' and nested under '{req.parent_group}'"}
+
+
+class RemoveChildGroupRequest(BaseModel):
+    parent_group: str
+    child_group: str
+
+
+@router.post("/group/remove-child")
+async def remove_child_group(req: RemoveChildGroupRequest):
+    if not _ad_session["authenticated"]:
+        raise HTTPException(status_code=401, detail="Not authenticated to AD")
+
+    child_dn = _find_group_dn(req.child_group)
+    if not child_dn:
+        return {"ok": False, "error": f"Group '{req.child_group}' not found"}
+
+    parent_dn = _find_group_dn(req.parent_group)
+    if not parent_dn:
+        return {"ok": False, "error": f"Parent group '{req.parent_group}' not found"}
+
+    ldif = f"dn: {parent_dn}\nchangetype: modify\ndelete: member\nmember: {child_dn}\n"
+    rc, out, err = _ldapmodify(ldif)
+    if rc != 0:
+        return {"ok": False, "error": err or out}
+    return {"ok": True, "msg": f"Removed '{req.child_group}' from '{req.parent_group}'"}
 
 
 @router.post("/group/add-child")

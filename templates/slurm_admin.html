@@ -737,7 +737,7 @@
   <div class="tab-pane" id="pane-mail">
     <div style="font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px">
       ✉ Send Cluster Mail
-      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · auth.ad.example.local</span>
+      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ad.example.local</span>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Compose and send an announcement to one or more AD groups. Members are resolved recursively including nested groups.</div>
 
@@ -2338,6 +2338,7 @@
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 7px;border-radius:10px">${cg.count} members</span>
               <button onclick="openAddMember('${cg.name}')" style="background:var(--accent);border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;color:#fff">+ Add</button>
+              <button onclick="removeChildGroup('${g.name}','${cg.name}')" title="Unlink subgroup" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--muted)">✕ Unlink</button>
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:4px">
@@ -2359,7 +2360,7 @@
             </div>
             <div style="display:flex;gap:8px">
               <button onclick="openAddMember('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ Add User</button>
-              ${g.name!=='hpc_eeadmins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button>`:''}
+              ${g.name!=='hpc_eeadmins'?`<button onclick="openCreateGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px">+ New Subgroup</button><button onclick="openLinkGroupFor('${g.name}')" class="sync-btn secondary" style="padding:4px 12px;font-size:12px;margin-left:4px">+ Link Existing</button>`:''}
             </div>
           </div>
           ${g.direct_users.length?`
@@ -2415,6 +2416,37 @@
     document.getElementById('cg-desc').value='';
     document.getElementById('cg-result').textContent='';
     openModal('create-group-modal');
+  }
+
+  async function removeChildGroup(parentGroup, childGroup){
+    if(!confirm(`Remove subgroup "${childGroup}" from "${parentGroup}"?`)) return;
+    const r = await fetch(BASE+'/api/ad/group/remove-child', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({parent_group: parentGroup, child_group: childGroup})
+    });
+    const d = await r.json();
+    if(d.ok){ loadADGroups(); }
+    else { alert('Error: ' + d.error); }
+  }
+
+  function openLinkGroupFor(parent){
+    document.getElementById('lg-parent').value = parent;
+    document.getElementById('lg-child').value = '';
+    document.getElementById('link-group-modal').style.display='flex';
+  }
+
+  async function submitLinkGroup(){
+    const parent = document.getElementById('lg-parent').value;
+    const child = document.getElementById('lg-child').value.trim();
+    if(!child){ alert('Enter a group name'); return; }
+    const r = await fetch(BASE+'/api/ad/group/add-child',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({parent_group: parent, child_group: child})
+    });
+    const d = await r.json();
+    document.getElementById('link-group-modal').style.display='none';
+    if(d.ok){ loadADGroups(); }
+    else { alert('Error: '+d.error); }
   }
 
   function openCreateGroupFor(parent){
@@ -2996,5 +3028,19 @@
 })();
 </script>
 
+<div id="link-group-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;min-width:340px;box-shadow:var(--shadow)">
+    <div style="font-size:16px;font-weight:600;margin-bottom:20px">Link Existing Group</div>
+    <input type="hidden" id="lg-parent">
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Existing group name to link</label>
+        <input id="lg-child" type="text" placeholder="e.g. hpc_researchers" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+      <button onclick="document.getElementById('link-group-modal').style.display='none'" class="sync-btn secondary">Cancel</button>
+      <button onclick="submitLinkGroup()" class="sync-btn">Link Group</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
