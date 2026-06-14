@@ -21,7 +21,7 @@ HPC_PARENT_GROUPS = [
     "hpc_researchers",
     "hpc_faculty",
     "hpc_course_students",
-    "hpc_adrian",
+    "hpc_group_a",
     "hpc_permuter",
     "hpc_matlab_users",
 ]
