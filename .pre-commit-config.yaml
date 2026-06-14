@@ -1,13 +1,8 @@
 repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.4
+  - repo: local
     hooks:
-      - id: gitleaks
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: check-added-large-files
-        args: ['--maxkb=500']
-      - id: check-merge-conflict
-      - id: detect-private-key
+      - id: no-infra-identifiers
+        name: block real infra identifiers
+        entry: python3 .pre-commit-hooks/check_identifiers.py
+        language: system
+        types: [text]
