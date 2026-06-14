@@ -54,7 +54,7 @@ HPC_PARENT_GROUPS = [
     "hpc_admins",
     "hpc_matlab_users",
     "hpc_researchB",
-    "hpc_adrian",
+    "hpc_group_a",
 ]
 
 ZFS_DATASETS = [
