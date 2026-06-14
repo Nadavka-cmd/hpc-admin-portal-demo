@@ -3,7 +3,6 @@ repos:
     rev: v8.18.4
     hooks:
       - id: gitleaks
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -11,3 +10,10 @@ repos:
         args: ['--maxkb=500']
       - id: check-merge-conflict
       - id: detect-private-key
+  - repo: local
+    hooks:
+      - id: no-infra-identifiers
+        name: block real infra identifiers
+        entry: python3 .pre-commit-hooks/check_identifiers.py
+        language: system
+        types: [text]
