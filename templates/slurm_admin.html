@@ -197,6 +197,7 @@
     .sync-cell.skip    {background:var(--bg);         color:var(--muted);border-color:var(--border)}
     .sync-cell.checking{background:var(--accent-lt);  color:var(--accent);border-color:var(--accent);animation:pulse .8s ease infinite}
     .sync-cell.pending {background:var(--bg);         color:var(--muted)}
+    .sync-count{width:auto;min-width:36px;padding:3px 9px;font-weight:600;font-size:12px}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
     .node-col{font-family:'Consolas','Monaco',monospace;font-weight:500;font-size:13px}
     .master-row td{background:#fafbff}
@@ -1531,51 +1532,134 @@
   const STATUS_ICON={'OK':'✓','MISMATCH':'✗','MISSING':'?','ERROR':'!','SKIP':'–','CHECKING':'…','PENDING':'·'};
   const STATUS_CLS ={'OK':'ok','MISMATCH':'mismatch','MISSING':'missing','ERROR':'error','SKIP':'skip','CHECKING':'checking','PENDING':'pending'};
 
+  const SYNC_ACCENT="#378ADD";
+  const SYNC_ACCENT_BG="rgba(55,138,221,0.07)";
+  const syncExpandedCats=new Set();
+
+  function syncGroups(files){
+    const groups=[];
+    files.forEach(f=>{
+      const cat=f.category||'Other';
+      const last=groups[groups.length-1];
+      if(last&&last.cat===cat){last.files.push(f);}
+      else{groups.push({cat:cat,files:[f]});}
+    });
+    return groups;
+  }
+
+  function toggleSyncCat(cat){
+    if(syncExpandedCats.has(cat)) syncExpandedCats.delete(cat);
+    else syncExpandedCats.add(cat);
+    if(syncData){
+      buildSyncHeaders(syncFiles);
+      buildSyncRows(syncData.nodes, syncFiles);
+      buildSyncInfraHeaders(syncFiles);
+      buildSyncInfraRows(syncInfra, syncFiles);
+    }
+  }
+
+  function syncHeaderHTML(files, clickShort){
+    const groups=syncGroups(files);
+    let cols='';
+    groups.forEach(g=>{
+      const expanded=syncExpandedCats.has(g.cat);
+      if(!expanded){
+        cols+=`<th class="file-col" title="Click to expand ${g.cat} (${g.files.length} files)" onclick="toggleSyncCat('${g.cat}')" style="cursor:pointer;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><span style="font-size:13px">▸</span>${g.cat}</span><div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:1px">${g.files.length} files · open</div></th>`;
+      } else {
+        cols+=g.files.map((f,i)=>{
+          const first=i===0, last=i===g.files.length-1;
+          const edges=`border-top:3px solid ${SYNC_ACCENT};`+(first?`border-left:3px solid ${SYNC_ACCENT};`:'')+(last?`border-right:3px solid ${SYNC_ACCENT};`:'');
+          const tag=first
+            ? `<div onclick="event.stopPropagation();toggleSyncCat('${g.cat}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:500;color:#fff;background:${SYNC_ACCENT};padding:2px 8px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px" title="Collapse ${g.cat}"><span style="font-size:11px">▾</span>${g.cat}</div>`
+            : `<div style="height:19px"></div>`;
+          const click=clickShort?` onclick="pushFileToAll('${f.short}')"`:'';
+          return `<th class="file-col" title="${f.path}\n${f.desc}"${click} style="${edges}background:${SYNC_ACCENT_BG}">${tag}<div>${f.short}</div><div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:2px">${f.desc}</div></th>`;
+        }).join('');
+      }
+    });
+    return `<tr><th>Node</th>${cols}</tr>`;
+  }
+
+  function syncFileCell(nd, f, isMaster, first, last, isLastRow){
+    let band=`background:${SYNC_ACCENT_BG};`;
+    if(first) band+=`border-left:3px solid ${SYNC_ACCENT};`;
+    if(last)  band+=`border-right:3px solid ${SYNC_ACCENT};`;
+    if(isLastRow) band+=`border-bottom:3px solid ${SYNC_ACCENT};`;
+    const r=nd.files?.[f.short];
+    const st=r?.status||'PENDING';
+    if(st==='SKIP'){
+      return `<td class="file-col" style="${band}"><span style="color:var(--border);font-size:16px" title="Not applicable">—</span></td>`;
+    }
+    const cls=STATUS_CLS[st]||'pending';
+    const icon=STATUS_ICON[st]||'·';
+    const title=`${nd.node} — ${f.short}\n${r?.detail||st}`;
+    return `<td class="file-col" style="${band}"><span class="sync-cell ${cls}" title="${title}" onclick="showDiff('${nd.node}','${f.short}')">${icon}</span></td>`;
+  }
+
+  function syncCatCell(nd, g){
+    const applicable=g.files.filter(f=>{
+      const st=nd.files?.[f.short]?.status;
+      return st && st!=='SKIP';
+    });
+    if(applicable.length===0){
+      return `<td class="file-col"><span style="color:var(--border);font-size:16px" title="Not applicable">—</span></td>`;
+    }
+    let ok=0, worst='OK';
+    const rank={OK:0, PENDING:1, CHECKING:1, MISSING:2, MISMATCH:3, ERROR:4};
+    const lines=[];
+    applicable.forEach(f=>{
+      const st=nd.files?.[f.short]?.status||'PENDING';
+      if(st==='OK') ok++;
+      if((rank[st]??1) > (rank[worst]??0)) worst=st;
+      lines.push(`${f.short}: ${st}`);
+    });
+    const cls=STATUS_CLS[worst]||'pending';
+    const title=`${nd.node} — ${g.cat}\n`+lines.join('\n')+`\n\nClick to expand`;
+    return `<td class="file-col"><span class="sync-cell sync-count ${cls}" title="${title}" onclick="toggleSyncCat('${g.cat}')">${ok}/${applicable.length}</span></td>`;
+  }
+
+  function syncNodeCells(nd, files, isMaster, isLastRow){
+    const groups=syncGroups(files);
+    let out='';
+    groups.forEach(g=>{
+      if(syncExpandedCats.has(g.cat)){
+        out+=g.files.map((f,i)=>syncFileCell(nd, f, isMaster, i===0, i===g.files.length-1, isLastRow)).join('');
+      } else {
+        out+=syncCatCell(nd, g);
+      }
+    });
+    return out;
+  }
+
   function buildSyncHeaders(files){
     const th=document.getElementById('sync-thead');
-    th.innerHTML=`<tr><th>Node</th>${files.map(f=>`<th class="file-col" title="${f.path}\n${f.desc}" onclick="pushFileToAll('${f.short}')">${f.short}<div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:2px">${f.desc}</div></th>`).join('')}</tr>`;
+    th.innerHTML=syncHeaderHTML(files, true);
   }
 
   function buildSyncRows(nodes, files){
     const tb=document.getElementById('sync-tbody');
     if(!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No nodes</td></tr>';return;}
-    tb.innerHTML=nodes.map(nd=>{
+    tb.innerHTML=nodes.map((nd,ri)=>{
       const isMaster=nd.node==='slurm-master';
-      const cells=files.map(f=>{
-        const r=nd.files?.[f.short];
-        const st=r?.status||'PENDING';
-        const cls=STATUS_CLS[st]||'pending';
-        const icon=STATUS_ICON[st]||'·';
-        const title=`${nd.node} — ${f.short}\n${r?.detail||st}`;
-        return `<td class="file-col"><span class="sync-cell ${cls}" title="${title}" onclick="showDiff('${nd.node}','${f.short}')">${icon}</span></td>`;
-      }).join('');
+      const isLastRow=ri===nodes.length-1;
+      const cells=syncNodeCells(nd, files, isMaster, isLastRow);
       const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span>${isMaster?' <span style="font-size:10px;color:var(--accent);margin-left:4px">master</span>':''}`;
       return `<tr class="${isMaster?'master-row':''}"><td class="node-col">${nodeName}</td>${cells}</tr>`;
     }).join('');
-    // Build per-file push buttons
     updateFilePushButtons(nodes, files);
   }
 
   function buildSyncInfraHeaders(files){
     const th=document.getElementById('sync-infra-thead');
-    th.innerHTML=`<tr><th>Node</th>${files.map(f=>`<th class="file-col" title="${f.path}\n${f.desc}">${f.short}<div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:2px">${f.desc}</div></th>`).join('')}</tr>`;
+    th.innerHTML=syncHeaderHTML(files, false);
   }
 
   function buildSyncInfraRows(nodes, files){
     const tb=document.getElementById('sync-infra-tbody');
     if(!nodes||!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--muted)">No infra nodes</td></tr>';return;}
-    tb.innerHTML=nodes.map(nd=>{
-      const cells=files.map(f=>{
-        const r=nd.files?.[f.short];
-        const st=r?.status||'PENDING';
-        if(st==='SKIP'&&r?.detail==='not applicable'){
-          return `<td class="file-col"><span style="color:var(--border);font-size:16px" title="Not applicable">—</span></td>`;
-        }
-        const cls=STATUS_CLS[st]||'pending';
-        const icon=STATUS_ICON[st]||'·';
-        const title=`${nd.node} — ${f.short}\n${r?.detail||st}`;
-        return `<td class="file-col"><span class="sync-cell ${cls}" title="${title}" onclick="showDiff('${nd.node}','${f.short}')">${icon}</span></td>`;
-      }).join('');
+    tb.innerHTML=nodes.map((nd,ri)=>{
+      const isLastRow=ri===nodes.length-1;
+      const cells=syncNodeCells(nd, files, false, isLastRow);
       const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span><span style="font-size:10px;color:var(--muted);margin-left:6px">infra</span>`;
       return `<tr><td class="node-col">${nodeName}</td>${cells}</tr>`;
     }).join('');

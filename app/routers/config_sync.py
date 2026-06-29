@@ -21,13 +21,17 @@ MASTER   = "slurm-master"
 SINFO    = "/opt/slurm/bin/sinfo"
 SCONTROL = "/opt/slurm/bin/scontrol"
 
+# Each entry: (local_path, remote_path, short, description, category)
+# category groups files in the Config Sync table UI.
 TRACKED_FILES = [
-    ("/etc/slurm/slurm.conf",     "/etc/slurm/slurm.conf",     "slurm.conf",  "Slurm main config"),
-    ("/etc/sssd/sssd.conf",       "/etc/sssd/sssd.conf",        "sssd.conf",   "SSSD / AD auth"),
-    ("/etc/hosts",                "/etc/hosts",                 "hosts",       "Hosts file"),
-    ("/etc/security/limits.conf", "/etc/security/limits.conf",  "limits",      "PAM limits"),
-    ("/etc/sysctl.conf",          "/etc/sysctl.conf",           "sysctl",      "Kernel params"),
-    ("/etc/environment",          "/etc/environment",           "environ",     "Env / proxy vars"),
+    ("/etc/slurm/slurm.conf",     "/etc/slurm/slurm.conf",     "slurm.conf",  "Slurm main config",        "Slurm Config"),
+    ("/etc/slurm/prolog.sh",      "/etc/slurm/prolog.sh",      "prolog",      "Job prolog script",        "Slurm Scripts"),
+    ("/etc/slurm/epilog.sh",      "/etc/slurm/epilog.sh",      "epilog",      "Job epilog script",        "Slurm Scripts"),
+    ("/etc/sssd/sssd.conf",       "/etc/sssd/sssd.conf",        "sssd.conf",   "SSSD / AD auth",           "Auth"),
+    ("/etc/hosts",                "/etc/hosts",                 "hosts",       "Hosts file",               "System"),
+    ("/etc/security/limits.conf", "/etc/security/limits.conf",  "limits",      "PAM limits",               "System"),
+    ("/etc/sysctl.conf",          "/etc/sysctl.conf",           "sysctl",      "Kernel params",            "System"),
+    ("/etc/environment",          "/etc/environment",           "environ",     "Env / proxy vars",         "System"),
 ]
 
 HOSTS_BEGIN = "# BEGIN ANSIBLE MANAGED CLUSTER HOSTS"
@@ -78,6 +82,8 @@ def _scp(local: str, node: str, remote: str) -> tuple[bool, str]:
 
     FILE_META = {
         "/etc/slurm/slurm.conf":     ("slurm:slurm", "644"),
+        "/etc/slurm/prolog.sh":      ("root:root",   "755"),
+        "/etc/slurm/epilog.sh":      ("root:root",   "755"),
         "/etc/sssd/sssd.conf":       ("root:root",   "600"),
         "/etc/hosts":                ("root:root",   "644"),
         "/etc/security/limits.conf": ("root:root",   "644"),
@@ -229,7 +235,7 @@ def _discover_nodes() -> list[str]:
 
 def _check_node_all_files(node: str, allowed: Optional[list] = None) -> dict:
     results = {}
-    for local_path, remote_path, short, _ in TRACKED_FILES:
+    for local_path, remote_path, short, _, _ in TRACKED_FILES:
         if allowed is not None and short not in allowed:
             results[short] = {"status": "SKIP", "detail": "not applicable"}
         else:
@@ -247,7 +253,7 @@ async def get_sync_nodes():
     return {
         "nodes": all_nodes,
         "infra_nodes": list(INFRA_NODES.keys()),
-        "files": [{"short": s, "path": lp, "desc": d} for lp, _, s, d in TRACKED_FILES]
+        "files": [{"short": s, "path": lp, "desc": d, "category": c} for lp, _, s, d, c in TRACKED_FILES]
     }
 
 
@@ -279,7 +285,7 @@ async def check_all():
     return {
         "nodes": results_compute,
         "infra": results_infra,
-        "files": [{"short": s, "path": lp, "desc": d} for lp, _, s, d in TRACKED_FILES]
+        "files": [{"short": s, "path": lp, "desc": d, "category": c} for lp, _, s, d, c in TRACKED_FILES]
     }
 
 
@@ -291,7 +297,7 @@ async def get_diff(node: str, file_short: str):
     entry = next((x for x in TRACKED_FILES if x[2] == file_short), None)
     if not entry:
         raise HTTPException(status_code=404, detail="File not tracked")
-    local_path, remote_path, short, desc = entry
+    local_path, remote_path, short, desc, _ = entry
     master_text = _read_file(local_path)
     if master_text is None:
         return {"diff": None, "error": "Can't read master file", "master": None, "node_text": None}
@@ -335,13 +341,13 @@ async def push_file(req: SyncRequest):
     entry = next((x for x in TRACKED_FILES if x[2] == req.file_short), None)
     if not entry:
         raise HTTPException(status_code=404, detail="File not tracked")
-    local_path, remote_path, short, _ = entry
+    local_path, remote_path, short, _, _ = entry
     ok, err = _scp(local_path, req.node, remote_path)
 
     # Post-push actions
     msgs = []
     if ok:
-        if "slurm" in remote_path:
+        if remote_path.endswith("slurm.conf"):
             rc, _, e = _ssh(req.node, "sudo /opt/slurm/bin/scontrol reconfigure 2>/dev/null || true", timeout=15)
             msgs.append(f"{'✓' if rc==0 else '⚠'} scontrol reconfigure")
         if "sssd" in remote_path:
@@ -366,7 +372,7 @@ async def push_all_mismatches(req: SyncAllRequest):
         if not entry:
             results.append({"ok": False, "node": node, "file": short, "error": "Unknown file"})
             continue
-        local_path, remote_path, _, _ = entry
+        local_path, remote_path, _, _, _ = entry
         ok, err = _scp(local_path, node, remote_path)
         results.append({"ok": ok, "node": node, "file": short, "error": err})
 
