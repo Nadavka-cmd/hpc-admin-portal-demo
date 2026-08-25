@@ -20,12 +20,13 @@ User flow:
 """
 
 import subprocess
+import os
 import re
 import yaml
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from app.routers.ad_mgmt import (
     _ad_session,
@@ -54,7 +55,7 @@ HPC_PARENT_GROUPS = [
     "hpc_admins",
     "hpc_matlab_users",
     "hpc_researchB",
-    "hpc_group_a",
+    "hpc_researchC",
 ]
 
 ZFS_DATASETS = [
@@ -626,9 +627,35 @@ async def offboard_group(req: OffboardGroupRequest):
 
 # ── Skel ──────────────────────────────────────────────────────────────────────
 
+SKEL_SIDECAR = CONFIG_PATH.parent / "skel_profiles.yaml"
+
+
+def _load_skel_sidecar() -> dict:
+    """Skel profiles created via the wizard live here, not in config.yaml."""
+    try:
+        if SKEL_SIDECAR.exists():
+            with open(SKEL_SIDECAR) as f:
+                data = yaml.safe_load(f) or {}
+            return data.get("skel_profiles", {}) or {}
+    except Exception:
+        pass
+    return {}
+
+
+def _save_skel_sidecar(profiles: dict):
+    try:
+        with open(SKEL_SIDECAR, "w") as f:
+            yaml.safe_dump({"skel_profiles": profiles}, f, default_flow_style=False, sort_keys=False)
+        return True, str(SKEL_SIDECAR)
+    except Exception as e:
+        return False, str(e)
+
+
 def _get_skel_profiles() -> dict:
     cfg = _load_config()
-    return cfg.get("onboarding", {}).get("skel_profiles", {})
+    profiles = dict(cfg.get("onboarding", {}).get("skel_profiles", {}) or {})
+    profiles.update(_load_skel_sidecar())  # wizard-created profiles override
+    return profiles
 
 def _get_home_base() -> str:
     cfg = _load_config()
@@ -679,10 +706,16 @@ def _apply_skel(username: str, profile: str) -> dict:
         dst_name = link["dst"].replace("{username}", username)
         dst_path = f"{home_dir}/{dst_name}"
 
-        rc, _, _ = _run(["test", "-e", dst_path])
+        rc, _, _ = _run(["test", "-L", dst_path])
         if rc == 0:
             results.append(f"✓ {dst_name} (already exists)")
             continue
+
+        rc, _, _ = _run(["test", "-d", dst_path])
+        if rc == 0:
+            dst_name = f"{dst_name}_new"
+            dst_path = f"{home_dir}/{dst_name}"
+            results.append(f"! directory exists, will create symlink as {dst_name}")
 
         rc, _, _ = _run(["test", "-e", src])
         if rc != 0:
@@ -720,3 +753,150 @@ async def apply_skel(req: ApplySkelRequest):
         raise HTTPException(status_code=400, detail="Invalid username")
     result = _apply_skel(req.username, req.profile)
     return {"ok": result["ok"], "steps": [result]}
+
+
+# ── Creators: skel profile + staff group / shared folder ───────────────────────
+
+_NAME_RE    = re.compile(r'^[A-Za-z0-9_][A-Za-z0-9_.\-]*$')
+_HOST_RE    = re.compile(r'^[A-Za-z0-9_.\-]+$')
+_ABSPATH_RE = re.compile(r'^/[A-Za-z0-9_\-./]+$')
+_RELPATH_RE = re.compile(r'^[A-Za-z0-9_\-./{}]+$')
+
+
+class SkelLink(BaseModel):
+    src: str
+    dst: str
+
+
+class CreateSkelRequest(BaseModel):
+    profile: str
+    symlinks: List[SkelLink]
+
+
+class CreateSharedFolderRequest(BaseModel):
+    share_path: str                # cluster path, e.g. /storage/courses/<name>
+    owner_group: str               # folder's group owner (rw via group bits)
+    create_owner_group: bool = False
+    owner_parent: str = ""
+    owner_members: list = []
+
+
+def _resolve_storage(cluster_path: str):
+    """Map a /storage/... cluster path to (ssh_host, box_local_path) via findmnt.
+    The folder itself need not exist yet — we resolve against its nearest mounted parent."""
+    probe = cluster_path
+    while probe != "/" and not os.path.exists(probe):
+        probe = os.path.dirname(probe)
+    r = subprocess.run(["findmnt", "-nrT", probe, "-t", "nfs,nfs4", "-o", "SOURCE,TARGET"],
+                       capture_output=True, text=True, timeout=10)
+    best = None
+    for line in r.stdout.strip().splitlines():
+        parts = line.split()
+        if len(parts) < 2 or ":" not in parts[0]:
+            continue
+        source, target = parts[0], parts[1]
+        if cluster_path == target or cluster_path.startswith(target.rstrip("/") + "/"):
+            if best is None or len(target) > len(best[1]):
+                best = (source, target)
+    if not best:
+        return None, None, "could not resolve an NFS mount for that path (is it under /storage?)"
+    source, target = best
+    host, export = source.split(":", 1)
+    box_path = export.rstrip("/") + cluster_path[len(target.rstrip("/")):]
+    return host, box_path, ""
+
+
+@router.post("/create-skel")
+async def create_skel(req: CreateSkelRequest):
+    if not _NAME_RE.match(req.profile):
+        raise HTTPException(status_code=400, detail="Invalid profile name")
+    if not req.symlinks:
+        raise HTTPException(status_code=400, detail="At least one symlink is required")
+
+    clean = []
+    for ln in req.symlinks:
+        src, dst = ln.src.strip(), ln.dst.strip()
+        if not src or not dst:
+            raise HTTPException(status_code=400, detail="Each link needs a source and a destination name")
+        if not _ABSPATH_RE.match(src.replace("{username}", "x")):
+            raise HTTPException(status_code=400, detail=f"Source must be an absolute path with no spaces/special chars: {src}")
+        if dst.startswith("/") or ".." in dst or not _RELPATH_RE.match(dst):
+            raise HTTPException(status_code=400, detail=f"Destination must be a relative name under the home dir: {dst}")
+        clean.append({"src": src, "dst": dst})
+
+    steps = []
+    for ln in clean:
+        if "{username}" in ln["src"]:
+            steps.append(_step(f"Source {ln['src']}", True, "per-user path (not pre-checked)"))
+        else:
+            rc, _, _ = _run(["test", "-e", ln["src"]])
+            steps.append(_step(f"Source {ln['src']}", rc == 0,
+                               "exists" if rc == 0 else "NOT found — create the shared folder before applying this profile"))
+
+    cfg_profiles = _load_config().get("onboarding", {}).get("skel_profiles", {}) or {}
+    profiles = _load_skel_sidecar()
+    shadows = req.profile in cfg_profiles
+    existed = req.profile in profiles
+    profiles[req.profile] = {"symlinks": clean}
+    ok, msg = _save_skel_sidecar(profiles)
+    verb = "Updated" if (existed or shadows) else "Saved"
+    note = " (shadows config.yaml profile of same name)" if shadows else ""
+    steps.append(_step("Save profile", ok,
+                       f"{verb} '{req.profile}' with {len(clean)} link(s){note} → {msg}" if ok
+                       else f"write failed: {msg}"))
+    return {"ok": all(s["ok"] for s in steps), "steps": steps}
+
+
+@router.post("/create-shared-folder")
+async def create_shared_folder(req: CreateSharedFolderRequest):
+    if not _ABSPATH_RE.match(req.share_path):
+        raise HTTPException(status_code=400, detail="Share path must be an absolute path with no spaces/special chars")
+    if not _NAME_RE.match(req.owner_group):
+        raise HTTPException(status_code=400, detail="Invalid owner group name")
+
+    host, box_path, err = _resolve_storage(req.share_path)
+    if not host:
+        raise HTTPException(status_code=400, detail=err)
+    if not _ABSPATH_RE.match(box_path):
+        raise HTTPException(status_code=400, detail=f"Resolved storage path looks wrong: {box_path}")
+
+    steps = [_step("Resolve storage", True, f"{req.share_path} → {host}:{box_path}")]
+
+    # Optionally create the owning group in AD (e.g. course staff)
+    if req.create_owner_group:
+        if not _ad_session["authenticated"]:
+            raise HTTPException(status_code=401, detail="Not authenticated to AD")
+        if req.owner_parent and not _NAME_RE.match(req.owner_parent):
+            raise HTTPException(status_code=400, detail="Invalid parent group name")
+        existing = _find_group_full(req.owner_group)
+        if existing and existing["in_hpc_ou"]:
+            steps.append(_step("AD: owner group", True, f"{req.owner_group} already in HPC OU"))
+        elif existing and existing["in_ee_scope"]:
+            steps.append(_move_group_to_hpc_ou(existing["dn"], req.owner_group))
+        elif existing:
+            steps.append(_step("AD: owner group", False, f"{req.owner_group} exists outside EE scope — aborting"))
+            return {"ok": False, "steps": steps}
+        else:
+            steps.append(_create_group_in_hpc_ou(req.owner_group, f"Shared-folder owner (rw) - {req.owner_group}"))
+        if req.owner_parent:
+            steps.append(_nest_group_under_parent(req.owner_group, req.owner_parent))
+        for m in req.owner_members:
+            m = m.strip()
+            if m:
+                steps.append(_ad_add_user_to_group(m, req.owner_group))
+
+    # Create + permission the folder on the storage host (root_squash blocks doing this
+    # over NFS from master). Mirrors ml_intro_2026: group-owned by the AD group, mode 775
+    # (owner svcaccount rwx, group rwx = read-write, other r-x = everyone else read-only).
+    g = req.owner_group
+    cmd = (
+        f"sudo mkdir -p '{box_path}' && "
+        f"sudo chown -R {SSH_USER}:'{g}' '{box_path}' && "
+        f"sudo chmod -R 775 '{box_path}'"
+    )
+    rc, _, e = _ssh(host, cmd, timeout=60)
+    steps.append(_step("Shared folder", rc == 0,
+                       f"{host}:{box_path} → owner {SSH_USER}, group {g}, mode 775 (group rw / others r)"
+                       if rc == 0 else (e or "mkdir/chown/chmod failed")))
+
+    return {"ok": all(s["ok"] for s in steps), "steps": steps}
