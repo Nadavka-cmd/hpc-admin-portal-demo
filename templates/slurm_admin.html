@@ -78,6 +78,11 @@
     .group-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
     .group-count{font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:500}
     .group-line{flex:1;height:1px;background:var(--border)}
+    .group-subheader-card{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 2px 4px 2px;border-bottom:1px solid var(--border);margin-bottom:2px}
+    .group-subheader-card:not(:first-child){margin-top:10px}
+    .group-subtitle{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;opacity:.8}
+    .group-subcount{font-size:10px;background:var(--border);color:var(--muted);padding:1px 7px;border-radius:20px;font-weight:500}
+    .group-subheader-row td{background:var(--bg);padding:6px 14px;font-size:11px}
     .nodes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
     .node-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s;animation:fadeUp .3s ease both}
     .node-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
@@ -166,6 +171,13 @@
     .time-cell{font-family:'Consolas','Monaco',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
     .time-cell.running{color:var(--ok);font-weight:500}
     .reason-cell{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px}
+    .act{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
+    .act .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+    .act-busy{background:var(--ok-bg);color:var(--ok)}.act-busy .dot{background:var(--ok)}
+    .act-idle{background:var(--unknown-bg);color:var(--muted)}.act-idle .dot{background:var(--unknown)}
+    .act-warned{background:var(--warn-bg);color:var(--warn)}.act-warned .dot{background:var(--warn)}
+    .act-kill{background:var(--danger-bg);color:var(--danger)}.act-kill .dot{background:var(--danger)}
+    .act-mech{font-size:10px;color:var(--muted);margin-left:4px}
 
     /* ── CONFIG SYNC ── */
     .sync-toolbar{display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap}
@@ -174,14 +186,16 @@
     .sync-btn:disabled{opacity:.5;cursor:not-allowed}
     .sync-btn.spinning svg{animation:spin .7s linear infinite}
     .sync-btn.danger{background:var(--danger)}
+    .sync-btn.lua{background:var(--active)}
     .sync-btn.secondary{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
     .sync-btn.secondary:hover{background:var(--accent-lt)}
     .sync-status{font-size:13px;color:var(--muted)}
     .sync-matrix-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto}
-    .sync-matrix{width:100%;border-collapse:collapse;font-size:13px}
+    .sync-matrix{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+    .sync-matrix th:first-child,.sync-matrix td:first-child{width:260px}
     .sync-matrix thead{background:var(--bg);border-bottom:1px solid var(--border)}
     .sync-matrix th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap}
-    .sync-matrix th.file-col{text-align:center;cursor:pointer}
+    .sync-matrix th.file-col{text-align:center;cursor:pointer;white-space:normal}
     .sync-matrix th.file-col:hover{color:var(--accent)}
     .sync-matrix tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
     .sync-matrix tbody tr:last-child{border-bottom:none}
@@ -200,7 +214,15 @@
     .sync-count{width:auto;min-width:36px;padding:3px 9px;font-weight:600;font-size:12px}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
     .node-col{font-family:'Consolas','Monaco',monospace;font-weight:500;font-size:13px}
-    .master-row td{background:#fafbff}
+    .master-row td{background:var(--accent-lt)}
+    .sync-section-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;user-select:none}
+    .sync-section-head[onclick]{cursor:pointer}
+    .sync-section-head[onclick]:hover .sync-section-chevron{color:var(--accent)}
+    .sync-section-chevron{font-size:11px;color:var(--muted);transition:transform .15s;display:inline-block}
+    .sync-section-chevron.collapsed{transform:rotate(-90deg)}
+    .sync-section-body-collapsed{display:none}
+    .source-badge{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);background:var(--accent-lt);border:1px solid var(--accent);border-radius:4px;padding:1px 6px;margin-left:8px}
+    .source-cell{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 10px;border-radius:8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;background:var(--accent-lt);color:var(--accent);border:1px solid var(--accent)}
 
     /* DIFF PANEL */
     .diff-panel{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
@@ -401,11 +423,11 @@
           <th onclick="sortJobs('account')" id="jth-account">Account <span class="si">↕</span></th>
           <th onclick="sortJobs('name')"      id="jth-name">Name <span class="si">↕</span></th>
           <th onclick="sortJobs('state')"     id="jth-state">State <span class="si">↕</span></th>
+          <th onclick="sortJobs('reason')"    id="jth-reason">Reason / Activity <span class="si">↕</span></th>
           <th onclick="sortJobs('time_run')"  id="jth-time_run">Time Running <span class="si">↕</span></th>
           <th onclick="sortJobs('time_limit')" id="jth-time_limit">Limit <span class="si">↕</span></th>
           <th onclick="sortJobs('gres')"      id="jth-gres">GPUs <span class="si">↕</span></th>
           <th onclick="sortJobs('nodes')"     id="jth-nodes">Node(s) <span class="si">↕</span></th>
-          <th onclick="sortJobs('reason')"    id="jth-reason">Reason/Node <span class="si">↕</span></th>
           <th style="width:40px"></th>
         </tr></thead>
         <tbody id="jobs-tbody"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">Loading…</td></tr></tbody>
@@ -445,16 +467,40 @@
       <span class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>Skipped</span>
     </div>
     <div class="sync-matrix-wrap">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Compute Nodes</div>
-      <table class="sync-matrix">
-        <thead id="sync-thead"></thead>
-        <tbody id="sync-tbody"><tr><td colspan="10" class="placeholder"><div class="icon">🔄</div><p>Click <strong>Check All</strong> to scan nodes</p></td></tr></tbody>
+      <!-- MASTER / SOURCE OF TRUTH -->
+      <div class="sync-section-head" style="cursor:default">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Source of Truth</span>
+      </div>
+      <table class="sync-matrix" style="margin-bottom:20px">
+        <thead id="sync-master-thead"></thead>
+        <tbody id="sync-master-tbody"><tr><td colspan="10" class="placeholder"><p style="color:var(--muted);padding:16px">Click Check All</p></td></tr></tbody>
       </table>
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:20px;margin-bottom:8px">Infra Nodes</div>
-      <table class="sync-matrix">
-        <thead id="sync-infra-thead"></thead>
-        <tbody id="sync-infra-tbody"><tr><td colspan="10" class="placeholder"><p style="color:var(--muted);padding:16px">Click Check All</p></td></tr></tbody>
-      </table>
+
+      <!-- COMPUTE NODES (collapsible) -->
+      <div class="sync-section-head" onclick="toggleSyncSection('compute')">
+        <span class="sync-section-chevron" id="chevron-compute">▾</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Compute Nodes</span>
+        <span id="count-compute" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px"></span>
+      </div>
+      <div id="sync-section-compute">
+        <table class="sync-matrix">
+          <thead id="sync-thead"></thead>
+          <tbody id="sync-tbody"><tr><td colspan="10" class="placeholder"><div class="icon">🔄</div><p>Click <strong>Check All</strong> to scan nodes</p></td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- INFRA NODES (collapsible) -->
+      <div class="sync-section-head" onclick="toggleSyncSection('infra')" style="margin-top:20px">
+        <span class="sync-section-chevron" id="chevron-infra">▾</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Infra Nodes</span>
+        <span id="count-infra" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px"></span>
+      </div>
+      <div id="sync-section-infra">
+        <table class="sync-matrix">
+          <thead id="sync-infra-thead"></thead>
+          <tbody id="sync-infra-tbody"><tr><td colspan="10" class="placeholder"><p style="color:var(--muted);padding:16px">Click Check All</p></td></tr></tbody>
+        </table>
+      </div>
     </div>
     <!-- PER-FILE QUICK PUSH BUTTONS -->
     <div id="file-push-bar" style="display:none;margin-top:16px">
@@ -470,9 +516,15 @@
         <div style="display:flex;align-items:center;gap:10px">
           <button class="sync-btn" onclick="loadFileEditor('slurm')" id="editor-load-slurm" style="padding:6px 16px;font-size:12px">✏️ slurm.conf</button>
           <button class="sync-btn" onclick="loadFileEditor('hosts')" id="editor-load-hosts" style="padding:6px 16px;font-size:12px">✏️ hosts block</button>
+          <button class="sync-btn" onclick="loadFileEditor('gpu_policy')" id="editor-load-gpu_policy" style="padding:6px 16px;font-size:12px">✏️ gpu_policy.json</button>
+          <button class="sync-btn" onclick="loadFileEditor('gpu_policy_lua')" id="editor-load-gpu_policy_lua" style="padding:6px 16px;font-size:12px">✏️ gpu_policy.lua</button>
           <span id="editor-file-label" style="font-size:12px;color:var(--muted);font-family:monospace"></span>
         </div>
-        <button class="sync-btn" onclick="saveFileEditor()" id="editor-save-btn" style="padding:6px 16px;font-size:12px" disabled>Save to master</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="sync-btn lua" onclick="runGpuPolicyLua()" id="editor-run-lua-btn" style="padding:6px 16px;font-size:12px;display:none">▶ Run gpu_policy_to_json.lua</button>
+          <button class="sync-btn" onclick="backupFileEditor()" id="editor-backup-btn" style="padding:6px 16px;font-size:12px" disabled>💾 Backup</button>
+          <button class="sync-btn" onclick="saveFileEditor()" id="editor-save-btn" style="padding:6px 16px;font-size:12px" disabled>Save to master</button>
+        </div>
       </div>
       <textarea id="file-editor-ta" rows="22" spellcheck="false"
         style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:var(--text);resize:vertical;outline:none;line-height:1.6"
@@ -519,6 +571,7 @@
           </div>
         </div>
     </div>
+  </div>
 
     <!-- ADD/EDIT USER MODAL -->
     <div id="add-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
@@ -586,7 +639,6 @@
       </div>
     </div>
   </div>
-  </div>
 
   <!-- ══ QOS TAB ══ -->
   <div class="tab-pane" id="pane-qos">
@@ -626,10 +678,11 @@
         <th style="padding:8px 14px">Partition</th>
         <th style="padding:8px 14px">Default QoS</th>
         <th style="padding:8px 14px">Allowed QoS</th>
-        <th style="padding:8px 14px">Allow Groups</th>
+        <th style="padding:8px 14px">Allow Groups (AD)</th>
+        <th style="padding:8px 14px">Allow Accounts (Slurm)</th>
         <th style="padding:8px 14px">Deny Accounts</th>
         <th style="padding:8px 14px">Actions</th>
-      </tr></thead><tbody id="partition-qos-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
+      </tr></thead><tbody id="partition-qos-tbody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">Loading&#x2026;</td></tr></tbody></table></div>
     </div>
 
     <!-- SECTION 3: QoS Lookup -->
@@ -732,13 +785,30 @@
         </div>
       </div>
     </div>
+
+    <!-- LINK EXISTING GROUP MODAL -->
+    <div id="link-group-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center">
+      <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <div style="font-size:16px;font-weight:600;margin-bottom:20px">Link Existing Group</div>
+        <input id="lg-parent" type="hidden" value="">
+        <div style="display:grid;gap:12px">
+          <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Child group name (sAMAccountName)</label>
+            <input id="lg-child" type="text" placeholder="e.g. hpc_course_236781" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+              onkeydown="if(event.key==='Enter')submitLinkGroup()"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+          <button onclick="document.getElementById('link-group-modal').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer">Cancel</button>
+          <button class="sync-btn" onclick="submitLinkGroup()">Link</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ══ MAIL TAB ══ -->
   <div class="tab-pane" id="pane-mail">
     <div style="font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:10px">
       ✉ Send Cluster Mail
-      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ad.example.local</span>
+      <span style="font-size:11px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:20px;font-weight:400">msmtp · ldap.internal.local</span>
     </div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Compose and send an announcement to one or more AD groups. Members are resolved recursively including nested groups.</div>
 
@@ -778,7 +848,7 @@
 
           <div>
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">From</label>
-            <input type="text" value="ood-node@example.local" disabled
+            <input type="text" value="hpc-portal@internal.local" disabled
               style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--muted)">
           </div>
 
@@ -900,7 +970,7 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">QoS Name *</label>
-        <input id="qos-create-name" type="text" placeholder="e.g. research_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+        <input id="qos-create-name" type="text" placeholder="e.g. researchA_gpu4" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div>
@@ -967,7 +1037,7 @@
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Username(s) <span style="color:var(--accent);font-weight:400">comma or newline separated for bulk</span></label>
-        <textarea id="qos-assign-user" rows="3" placeholder="e.g. jsmith, cluster_admin1, cluster_admin2" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);resize:vertical;outline:none"></textarea>
+        <textarea id="qos-assign-user" rows="3" placeholder="e.g. jsmith, asmith" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);resize:vertical;outline:none"></textarea>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Account</label>
@@ -1010,6 +1080,15 @@
         <select id="pqos-default-qos" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
           <option value="">&#x2014; no change &#x2014;</option>
         </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Allow Groups (AD) <span style="font-size:11px;color:var(--muted)">(comma-separated AD groups — leave blank for ALL)</span></label>
+        <input type="text" id="pqos-allow-groups" placeholder="e.g. hpc_researchers,hpc_faculty,hpc_eeadmins" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Allow Accounts <span style="font-size:11px;color:var(--muted)">(comma-separated Slurm accounts — leave blank for ALL)</span></label>
+        <input type="text" id="pqos-allow-accounts" list="pqos-accounts-list" placeholder="e.g. research_arnon,research_yitzhaky" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Comma-separate multiple accounts. Type to autocomplete.</div>
       </div>
       <div style="margin-bottom:16px">
         <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Deny Accounts <span style="font-size:11px;color:var(--danger)">(comma-separated Slurm accounts — blocked from this partition)</span></label>
@@ -1120,7 +1199,8 @@
   function parseCpus(s){const p=s.split('/');return p.length===4?{allocated:+p[0],total:+p[3]}:null;}
   function formatMemory(mb){const gb=Math.round(mb/1000);return gb>=1000?`${(gb/1000).toFixed(1)} TB`:`${gb} GB`;}
   function formatGres(g){if(!g||g==='(null)')return'—';return g.replace('gpu:','').replace(/_/g,' ');}
-  function nodeGroup(n){if(/group_a/i.test(n))return'researcher';if(/apps/i.test(n))return'apps';return'compute';}
+  function nodeGroup(n){if(n.owned||/groupc/i.test(n.node))return'researcher';if(/apps/i.test(n.node))return'apps';return'compute';}
+  function nodeOwner(n){if(n.owner)return n.owner.charAt(0).toUpperCase()+n.owner.slice(1);if(/groupc/i.test(n.node))return'Group C';return'Other';}
   function gpuType(g){
     if(!g||g==='(null)')return'No GPU';
     const gl=g.replace('gpu:','').toLowerCase();
@@ -1201,12 +1281,12 @@
     </tr>`;
   }
 
-  function renderNodeGroups(nodes, rowFn, wrapFn){
+  function renderNodeGroups(nodes, rowFn, wrapFn, subHeaderFn){
     const filtered=nodeFilter==='all'?nodes:nodes.filter(n=>stateClass(n.state)===nodeFilter);
     if(!filtered.length){document.getElementById('nodes-content').innerHTML=`<div style="text-align:center;padding:60px;color:var(--muted)">No nodes found</div>`;return;}
     const groups={};
     filtered.forEach((n,i)=>{
-      const key=groupMode==='gpu'?gpuType(n.gres):nodeGroup(n.node);
+      const key=groupMode==='gpu'?gpuType(n.gres):nodeGroup(n);
       if(!groups[key])groups[key]=[];
       groups[key].push({n,i});
     });
@@ -1217,7 +1297,22 @@
     keys.forEach(key=>{
       const label=groupMode==='type'?(GROUP_LABELS[key]?.label||key):`🎮 ${key}`;
       const items=groups[key];
-      const content=wrapFn(items.map(({n,i})=>rowFn(n,i)).join(''));
+      let rowsHtml;
+      if(groupMode==='type' && key==='researcher' && subHeaderFn){
+        const subGroups={};
+        items.forEach(item=>{
+          const owner=nodeOwner(item.n);
+          (subGroups[owner]=subGroups[owner]||[]).push(item);
+        });
+        const subKeys=Object.keys(subGroups).sort();
+        rowsHtml=subKeys.map(owner=>{
+          const subItems=subGroups[owner];
+          return subHeaderFn(owner,subItems.length)+subItems.map(({n,i})=>rowFn(n,i)).join('');
+        }).join('');
+      } else {
+        rowsHtml=items.map(({n,i})=>rowFn(n,i)).join('');
+      }
+      const content=wrapFn(rowsHtml);
       html+=`<div class="group-section"><div class="group-header"><span class="group-title">${label}</span><span class="group-count">${items.length} node${items.length!==1?'s':''}</span><div class="group-line"></div></div>${content}</div>`;
     });
     document.getElementById('nodes-content').innerHTML=html;
@@ -1225,13 +1320,15 @@
 
   function renderCards(nodes){
     renderNodeGroups(nodes, makeNodeCard,
-      cards=>`<div class="nodes-grid">${cards}</div>`);
+      cards=>`<div class="nodes-grid">${cards}</div>`,
+      (owner,count)=>`<div class="group-subheader-card"><span class="group-subtitle">${owner}</span><span class="group-subcount">${count} node${count!==1?'s':''}</span></div>`);
   }
 
   function renderTable(nodes){
     const thead=`<thead><tr><th>Node</th><th>State</th><th>CPUs</th><th>Memory</th><th>GPU</th><th>CPU Usage</th><th>Actions</th></tr></thead>`;
     renderNodeGroups(nodes, makeTableRow,
-      rows=>`<div class="nodes-table-wrap"><table>${thead}<tbody>${rows}</tbody></table></div>`);
+      rows=>`<div class="nodes-table-wrap"><table>${thead}<tbody>${rows}</tbody></table></div>`,
+      (owner,count)=>`<tr class="group-subheader-row"><td colspan="7"><span class="group-subtitle">${owner}</span><span class="group-subcount">${count} node${count!==1?'s':''}</span></td></tr>`);
   }
 
   function setNodeFilter(f,btn){
@@ -1268,10 +1365,14 @@
   // ══════════════════════════════════════════════════════════
   // JOBS
   // ══════════════════════════════════════════════════════════
-  function jobType(name){
-    const n=(name||'').toLowerCase();
-    if(/^(bash|sh|zsh|fish|csh|tcsh|srun|interactive)$/.test(n)) return 'shell';
+  function jobType(j){
+    const name=(typeof j==='string')?j:(j&&j.name)||'';
+    const n=name.toLowerCase();
+    const bf=(typeof j==='object'&&j)?j.batch_flag:undefined;
     if(/vscode|jupyter|pycharm|rstudio|matlab|tensorboard/.test(n)) return 'ood';
+    if(/^(bash|sh|zsh|fish|csh|tcsh|srun|interactive)$/.test(n)) return 'shell';
+    if(bf==='1'||bf===1) return 'batch';
+    if(bf==='0'||bf===0) return 'shell';     // interactive srun/salloc
     return 'batch';
   }
   const JOB_TYPE_BADGE={
@@ -1281,15 +1382,31 @@
   };
   function stateKey(s){const u=s.toUpperCase();if(u.includes('RUNNING'))return'RUNNING';if(u.includes('PENDING'))return'PENDING';if(u.includes('FAILED'))return'FAILED';return'UNKNOWN';}
   function fmtGres(g){if(!g||g==='N/A'||g==='(null)'||g==='')return null;return g.replace(/^gpu:/i,'').replace(/_/g,' ');}
+  function escHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  // Render idle-watchdog activity into the REASON/ACTIVITY cell. Returns HTML, or null if no fresh activity.
+  function formatActivity(a){
+    if(!a||!a.status) return null;
+    const mins=Math.floor(Math.max(0,(a.idle_seconds||0))/60);
+    const mech=a.mechanism?`<span class="act-mech">${escHtml(a.mechanism)}</span>`:'';
+    let cls,label;
+    if(a.status==='active' && a.phase==='BUSY'){cls='act-busy';label='Active';}
+    else if(a.status==='active'){cls='act-idle';label=mins>0?`Idle ${mins}m`:'Idle';}
+    else if(a.status==='warned'){cls='act-warned';label=`Warned ${mins}m`;}
+    else if(a.status==='would-kill'){cls='act-kill';label=`Would-kill ${mins}m`;}
+    else if(a.status==='killed'){cls='act-kill';label='Reclaimed';}
+    else {cls='act-idle';label=escHtml(a.status);}
+    return `<span class="act ${cls}"><span class="dot"></span>${label}</span>${mech}`;
+  }
   function exitcodeTooltip(code){
     if(!code) return '';
     const [exit,sig]=code.split(':').map(Number);
     if(exit===0 && sig===0) return 'Success';
+    if(sig===125) return 'Out of memory (killed by cgroup)';
     if(sig>0){
-      const signals={1:'SIGHUP (hangup)',2:'SIGINT (interrupted)',9:'SIGKILL (killed by admin or OOM)',11:'SIGSEGV (segmentation fault)',13:'SIGPIPE (browser tab closed / session disconnected)',15:'SIGTERM (terminated)',24:'SIGXCPU (CPU time limit exceeded)',25:'SIGXFSZ (file size limit exceeded)'};
+      const signals={1:'SIGHUP (hangup)',2:'SIGINT (interrupted)',3:'SIGQUIT (quit/core dump)',4:'SIGILL (illegal instruction)',6:'SIGABRT (program aborted - assert/malloc error)',7:'SIGBUS (bad memory access)',8:'SIGFPE (division by zero/float error)',9:'SIGKILL (killed by admin or OOM)',11:'SIGSEGV (segmentation fault)',13:'SIGPIPE (browser tab closed / session disconnected)',14:'SIGALRM (timer signal)',15:'SIGTERM (terminated)',24:'SIGXCPU (CPU time limit exceeded)',25:'SIGXFSZ (file size limit exceeded)'};
       return `Killed by signal ${sig}${signals[sig]?' — '+signals[sig]:''}`;
     }
-    const codes={1:'General error',2:'Misuse of shell/command',126:'Command not executable',127:'Command not found',130:'Interrupted by user',137:'OOM killed (out of memory)',139:'Segmentation fault',247:'Job cancelled',265:'Timeout'};
+    const codes={1:'General error',2:'Misuse of shell/command',126:'Command not executable',127:'Command not found',130:'Interrupted by user',131:'Quit (core dump)',134:'Aborted (assert/malloc error)',135:'Bad memory access',136:'Division by zero/float error',137:'OOM killed (out of memory)',138:'User signal 1 (SIGUSR1)',139:'Segmentation fault',141:'Broken pipe',143:'Terminated (timeout/scancel)',247:'Job cancelled',265:'Timeout'};
     return `Exit code ${exit}${codes[exit]?' — '+codes[exit]:''}`;
   }
 
@@ -1298,7 +1415,7 @@
     jobs.forEach(j=>{const s=stateKey(j.state);if(c[s]!==undefined)c[s]++;});
     document.getElementById('job-summary').innerHTML=[
       {l:'Total Jobs',k:'total',c:'var(--accent)'},{l:'Running',k:'RUNNING',c:'var(--ok)'},
-      {l:'Pending',k:'PENDING',c:'var(--warn)'},{l:'Failed',k:'FAILED',c:'var(--danger)'},
+      {l:'Pending',k:'PENDING',c:'var(--warn)'},
     ].map(i=>`<div class="stat-pill"><div class="stat-dot" style="background:${i.c}"></div><div><div class="count">${c[i.k]}</div><div class="label">${i.l}</div></div></div>`).join('');
   }
 
@@ -1326,13 +1443,13 @@
         <td><span class="job-id">${j.job_id}</span></td>
         <td><span class="mono">${j.user}</span></td>
         <td><span class="mono">${j.account||'—'}</span></td>
-        <td><span class="job-name" title="${j.name}">${j.name}</span>${JOB_TYPE_BADGE[jobType(j.name)]}</td>
+        <td><span class="job-name" title="${j.name}">${j.name}</span>${JOB_TYPE_BADGE[jobType(j)]}</td>
         <td><span class="job-state state-${sk}"><span class="dot"></span>${j.state}</span></td>
+        <td>${isRunning ? (formatActivity(j.activity) || `<span class="reason-cell">—</span>`) : `<span class="reason-cell" title="${escHtml(j.reason)}">${escHtml(j.reason)||'—'}</span>`}</td>
         <td><span class="time-cell ${sk==='RUNNING'?'running':''}">${j.time_run||'—'}</span></td>
         <td><span class="time-cell">${j.time_limit||'—'}</span></td>
         <td>${g?`<span class="gres-badge">${g}</span>`:`<span class="gres-none">—</span>`}</td>
         <td><span class="mono">${j.nodes||'—'}</span></td>
-        <td><span class="reason-cell" title="${j.reason}">${j.reason||'—'}</span></td>
         <td onclick="event.stopPropagation()">
           <div class="job-action-wrap">
             <button class="job-action-btn" onclick="openJobMenu('${j.job_id}',this)" title="Actions">⋮</button>
@@ -1451,7 +1568,7 @@
     html += '<span class="jd-state" style="background:'+sc+'">'+( d.state||'—')+'</span>';
     html += '</div>';
     html += '<div class="jd-grid">';
-    html += f('Cluster',    d.cluster||'ECE HPC Cluster');
+    html += f('Cluster',    d.cluster||'HPC Cluster');
     html += f('User',       user);
     html += f('Account',    d.account);
     html += f('Partition',  d.partition);
@@ -1532,9 +1649,11 @@
   const STATUS_ICON={'OK':'✓','MISMATCH':'✗','MISSING':'?','ERROR':'!','SKIP':'–','CHECKING':'…','PENDING':'·'};
   const STATUS_CLS ={'OK':'ok','MISMATCH':'mismatch','MISSING':'missing','ERROR':'error','SKIP':'skip','CHECKING':'checking','PENDING':'pending'};
 
-  const SYNC_ACCENT="#378ADD";
-  const SYNC_ACCENT_BG="rgba(55,138,221,0.07)";
-  const syncExpandedCats=new Set();
+  // Build a two-row header: a category band (colspan per category) above the
+  // per-file columns. clickShort=true wires the file <th> to pushFileToAll.
+  // Which category columns are expanded into their individual files.
+  // Default: all collapsed (one summary column per category).
+  const syncExpandedCats = new Set();
 
   function syncGroups(files){
     const groups=[];
@@ -1550,13 +1669,11 @@
   function toggleSyncCat(cat){
     if(syncExpandedCats.has(cat)) syncExpandedCats.delete(cat);
     else syncExpandedCats.add(cat);
-    if(syncData){
-      buildSyncHeaders(syncFiles);
-      buildSyncRows(syncData.nodes, syncFiles);
-      buildSyncInfraHeaders(syncFiles);
-      buildSyncInfraRows(syncInfra, syncFiles);
-    }
+    if(syncData) renderSyncAll();
   }
+
+  const SYNC_ACCENT="#378ADD";
+  const SYNC_ACCENT_BG="rgba(55,138,221,0.07)";
 
   function syncHeaderHTML(files, clickShort){
     const groups=syncGroups(files);
@@ -1564,10 +1681,11 @@
     groups.forEach(g=>{
       const expanded=syncExpandedCats.has(g.cat);
       if(!expanded){
-        cols+=`<th class="file-col" title="Click to expand ${g.cat} (${g.files.length} files)" onclick="toggleSyncCat('${g.cat}')" style="cursor:pointer;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><span style="font-size:13px">▸</span>${g.cat}</span><div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:1px">${g.files.length} files · open</div></th>`;
+        cols+=`<th class="file-col cat-col" title="Click to expand ${g.cat} (${g.files.length} files)" onclick="toggleSyncCat('${g.cat}')" style="cursor:pointer;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><span style="font-size:13px">▸</span>${g.cat}</span><div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:1px">${g.files.length} files · open</div></th>`;
       } else {
         cols+=g.files.map((f,i)=>{
-          const first=i===0, last=i===g.files.length-1;
+          const first=i===0;
+          const last=i===g.files.length-1;
           const edges=`border-top:3px solid ${SYNC_ACCENT};`+(first?`border-left:3px solid ${SYNC_ACCENT};`:'')+(last?`border-right:3px solid ${SYNC_ACCENT};`:'');
           const tag=first
             ? `<div onclick="event.stopPropagation();toggleSyncCat('${g.cat}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:500;color:#fff;background:${SYNC_ACCENT};padding:2px 8px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px" title="Collapse ${g.cat}"><span style="font-size:11px">▾</span>${g.cat}</div>`
@@ -1580,11 +1698,31 @@
     return `<tr><th>Node</th>${cols}</tr>`;
   }
 
+  // Build the cells for one node, matching the header layout.
+  // Collapsed category -> one summary cell (worst status color + N/M count).
+  // Expanded -> one cell per file (original behavior).
+  function syncNodeCells(nd, files, isMaster, isLastRow){
+    const groups=syncGroups(files);
+    let out='';
+    groups.forEach(g=>{
+      const expanded=syncExpandedCats.has(g.cat);
+      if(expanded){
+        out+=g.files.map((f,i)=>syncFileCell(nd, f, isMaster, i===0, i===g.files.length-1, isLastRow)).join('');
+      } else {
+        out+=syncCatCell(nd, g, isMaster);
+      }
+    });
+    return out;
+  }
+
   function syncFileCell(nd, f, isMaster, first, last, isLastRow){
     let band=`background:${SYNC_ACCENT_BG};`;
     if(first) band+=`border-left:3px solid ${SYNC_ACCENT};`;
     if(last)  band+=`border-right:3px solid ${SYNC_ACCENT};`;
     if(isLastRow) band+=`border-bottom:3px solid ${SYNC_ACCENT};`;
+    if(isMaster){
+      return `<td class="file-col" style="${band}"><span class="source-cell" title="slurm-master is the source of truth for this file">source</span></td>`;
+    }
     const r=nd.files?.[f.short];
     const st=r?.status||'PENDING';
     if(st==='SKIP'){
@@ -1596,7 +1734,11 @@
     return `<td class="file-col" style="${band}"><span class="sync-cell ${cls}" title="${title}" onclick="showDiff('${nd.node}','${f.short}')">${icon}</span></td>`;
   }
 
-  function syncCatCell(nd, g){
+  // Collapsed category cell: colored count pill (worst status), click to expand.
+  function syncCatCell(nd, g, isMaster){
+    if(isMaster){
+      return `<td class="file-col"><span class="source-cell" title="source of truth">source</span></td>`;
+    }
     const applicable=g.files.filter(f=>{
       const st=nd.files?.[f.short]?.status;
       return st && st!=='SKIP';
@@ -1615,20 +1757,16 @@
     });
     const cls=STATUS_CLS[worst]||'pending';
     const title=`${nd.node} — ${g.cat}\n`+lines.join('\n')+`\n\nClick to expand`;
-    return `<td class="file-col"><span class="sync-cell sync-count ${cls}" title="${title}" onclick="toggleSyncCat('${g.cat}')">${ok}/${applicable.length}</span></td>`;
+    return `<td class="file-col"><span class="sync-cell sync-count ${cls}" title="${title}" onclick="toggleSyncCat('${g.cat}')" style="min-width:36px;padding:3px 9px;border-radius:10px;font-size:12px">${ok}/${applicable.length}</span></td>`;
   }
 
-  function syncNodeCells(nd, files, isMaster, isLastRow){
-    const groups=syncGroups(files);
-    let out='';
-    groups.forEach(g=>{
-      if(syncExpandedCats.has(g.cat)){
-        out+=g.files.map((f,i)=>syncFileCell(nd, f, isMaster, i===0, i===g.files.length-1, isLastRow)).join('');
-      } else {
-        out+=syncCatCell(nd, g);
-      }
-    });
-    return out;
+  // Re-render every sync table from the cached data (used on expand toggle).
+  function renderSyncAll(){
+    if(!syncData) return;
+    buildSyncHeaders(syncData.files);
+    buildSyncMasterRow(syncData.nodes, syncData.files);
+    buildSyncRows(syncData.nodes, syncData.files);
+    if(syncInfra){ buildSyncInfraHeaders(syncData.files); buildSyncInfraRows(syncInfra, syncData.files); }
   }
 
   function buildSyncHeaders(files){
@@ -1636,15 +1774,34 @@
     th.innerHTML=syncHeaderHTML(files, true);
   }
 
+  function toggleSyncSection(which){
+    const body=document.getElementById('sync-section-'+which);
+    const chevron=document.getElementById('chevron-'+which);
+    if(!body||!chevron)return;
+    const collapsed=body.classList.toggle('sync-section-body-collapsed');
+    chevron.classList.toggle('collapsed', collapsed);
+  }
+
+  function buildSyncMasterRow(nodes, files){
+    const th=document.getElementById('sync-master-thead');
+    th.innerHTML=syncHeaderHTML(files, false);
+    const tb=document.getElementById('sync-master-tbody');
+    const master=nodes.find(n=>n.node==='slurm-master');
+    if(!master){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--muted)">master not found</td></tr>';return;}
+    const cells=syncNodeCells(master, files, true, false);
+    const nodeName=`<span class="mono">slurm-master</span><span class="source-badge">source of truth</span>`;
+    tb.innerHTML=`<tr class="master-row"><td class="node-col">${nodeName}</td>${cells}</tr>`;
+  }
+
   function buildSyncRows(nodes, files){
     const tb=document.getElementById('sync-tbody');
-    if(!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No nodes</td></tr>';return;}
-    tb.innerHTML=nodes.map((nd,ri)=>{
-      const isMaster=nd.node==='slurm-master';
-      const isLastRow=ri===nodes.length-1;
-      const cells=syncNodeCells(nd, files, isMaster, isLastRow);
-      const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span>${isMaster?' <span style="font-size:10px;color:var(--accent);margin-left:4px">master</span>':''}`;
-      return `<tr class="${isMaster?'master-row':''}"><td class="node-col">${nodeName}</td>${cells}</tr>`;
+    const computeNodes=nodes.filter(n=>n.node!=='slurm-master');
+    document.getElementById('count-compute').textContent=computeNodes.length?`(${computeNodes.length})`:'';
+    if(!computeNodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No nodes</td></tr>';updateFilePushButtons(nodes, files);return;}
+    tb.innerHTML=computeNodes.map((nd,ri)=>{
+      const cells=syncNodeCells(nd, files, false, ri===computeNodes.length-1);
+      const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span>`;
+      return `<tr><td class="node-col">${nodeName}</td>${cells}</tr>`;
     }).join('');
     updateFilePushButtons(nodes, files);
   }
@@ -1656,10 +1813,10 @@
 
   function buildSyncInfraRows(nodes, files){
     const tb=document.getElementById('sync-infra-tbody');
+    document.getElementById('count-infra').textContent=(nodes&&nodes.length)?`(${nodes.length})`:'';
     if(!nodes||!nodes.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--muted)">No infra nodes</td></tr>';return;}
     tb.innerHTML=nodes.map((nd,ri)=>{
-      const isLastRow=ri===nodes.length-1;
-      const cells=syncNodeCells(nd, files, false, isLastRow);
+      const cells=syncNodeCells(nd, files, false, ri===nodes.length-1);
       const nodeName=`<span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="showNodeDrilldown('${nd.node}')" title="View all files for ${nd.node}">${nd.node}</span><span style="font-size:10px;color:var(--muted);margin-left:6px">infra</span>`;
       return `<tr><td class="node-col">${nodeName}</td>${cells}</tr>`;
     }).join('');
@@ -1725,24 +1882,82 @@
 
   let _editorMode = null;
 
+  // kind 'content' -> GET/POST {content} against /api/sync/file/<key>
+  // kind 'block'   -> GET/POST {block}   against /api/sync/hosts-block
+  const EDITOR_MODES = {
+    slurm:          { url: BASE+'/api/sync/file/slurm.conf',     label: '/etc/slurm/slurm.conf',      backupKey: 'slurm.conf',     kind: 'content' },
+    hosts:          { url: BASE+'/api/sync/hosts-block',         label: '/etc/hosts (Ansible block)', backupKey: 'hosts',          kind: 'block' },
+    gpu_policy:     { url: BASE+'/api/sync/file/gpu_policy',     label: '/etc/slurm/gpu_policy.json', backupKey: 'gpu_policy',     kind: 'content' },
+    gpu_policy_lua: { url: BASE+'/api/sync/file/gpu_policy_lua', label: '/etc/slurm/gpu_policy.lua',  backupKey: 'gpu_policy_lua', kind: 'content' },
+  };
+
   async function loadFileEditor(mode){
+    const cfg = EDITOR_MODES[mode];
+    if(!cfg) return;
     _editorMode = mode;
     const ta  = document.getElementById('file-editor-ta');
     const st  = document.getElementById('file-editor-status');
     const lbl = document.getElementById('editor-file-label');
     const savBtn = document.getElementById('editor-save-btn');
-    ta.value = ''; savBtn.disabled = true;
+    const bakBtn = document.getElementById('editor-backup-btn');
+    const runBtn = document.getElementById('editor-run-lua-btn');
+    ta.value = ''; savBtn.disabled = true; bakBtn.disabled = true;
+    runBtn.style.display = (mode === 'gpu_policy_lua') ? 'flex' : 'none';
     st.textContent = 'Loading…'; st.style.color = 'var(--muted)';
-    const url = mode==='slurm' ? BASE+'/api/sync/file/slurm.conf' : BASE+'/api/sync/hosts-block';
-    const label = mode==='slurm' ? '/etc/slurm/slurm.conf' : '/etc/hosts (Ansible block)';
     try {
-      const data = await fetch(url).then(r=>r.json());
-      ta.value = mode==='slurm' ? (data.content||'') : (data.block||'');
-      lbl.textContent = '— ' + label;
+      const data = await fetch(cfg.url).then(r=>r.json());
+      ta.value = cfg.kind==='content' ? (data.content||'') : (data.block||'');
+      lbl.textContent = '— ' + cfg.label;
       savBtn.disabled = false;
+      bakBtn.disabled = false;
       st.textContent = '✓ Loaded'; st.style.color = 'var(--ok)';
     } catch(e) {
       st.textContent = '⚠ ' + e.message; st.style.color = 'var(--danger)';
+    }
+  }
+
+  async function runGpuPolicyLua(){
+    const st = document.getElementById('file-editor-status');
+    const runBtn = document.getElementById('editor-run-lua-btn');
+    if(_editorMode !== 'gpu_policy_lua') return;
+    if(!confirm('Run gpu_policy_to_json.lua on slurm-master now?\nThis regenerates gpu_policy.json from the CURRENT saved gpu_policy.lua on disk (not unsaved editor changes).')) return;
+    runBtn.disabled = true; runBtn.textContent = 'Running…';
+    st.textContent = ''; st.style.color = 'var(--muted)';
+    try {
+      const data = await fetch(BASE+'/api/sync/regenerate-gpu-policy', { method:'POST' }).then(r=>r.json());
+      if(data.ok){
+        st.textContent = '✓ ' + data.msg + ' — use Config Sync to push cluster-wide';
+        st.style.color = 'var(--ok)';
+      } else {
+        st.textContent = '⚠ ' + (data.detail||'Regenerate failed'); st.style.color = 'var(--danger)';
+      }
+    } catch(e) {
+      st.textContent = '⚠ ' + e.message; st.style.color = 'var(--danger)';
+    } finally {
+      runBtn.disabled = false; runBtn.textContent = '▶ Run gpu_policy_to_json.lua';
+    }
+  }
+
+  async function backupFileEditor(){
+    const st = document.getElementById('file-editor-status');
+    const bakBtn = document.getElementById('editor-backup-btn');
+    const cfg = EDITOR_MODES[_editorMode];
+    if(!cfg){ st.textContent = '⚠ Load a file first'; st.style.color = 'var(--danger)'; return; }
+    if(!confirm('Create a timestamped backup of '+cfg.label+' in place on slurm-master?')) return;
+    bakBtn.disabled = true; bakBtn.textContent = 'Backing up…';
+    st.textContent = ''; st.style.color = 'var(--muted)';
+    try {
+      const data = await fetch(BASE+'/api/sync/backup/'+cfg.backupKey, { method:'POST' }).then(r=>r.json());
+      if(data.ok){
+        st.textContent = '✓ ' + data.msg;
+        st.style.color = 'var(--ok)';
+      } else {
+        st.textContent = '⚠ ' + (data.detail||'Backup failed'); st.style.color = 'var(--danger)';
+      }
+    } catch(e) {
+      st.textContent = '⚠ ' + e.message; st.style.color = 'var(--danger)';
+    } finally {
+      bakBtn.disabled = false; bakBtn.textContent = '💾 Backup';
     }
   }
 
@@ -1750,15 +1965,15 @@
     const ta  = document.getElementById('file-editor-ta');
     const st  = document.getElementById('file-editor-status');
     const savBtn = document.getElementById('editor-save-btn');
+    const cfg = EDITOR_MODES[_editorMode];
+    if(!cfg){ st.textContent = '⚠ Load a file first'; st.style.color = 'var(--danger)'; return; }
     if(!ta.value.trim()){st.textContent='⚠ Nothing to save';st.style.color='var(--danger)';return;}
-    const label = _editorMode==='slurm' ? 'slurm.conf' : 'hosts block';
-    if(!confirm('Save '+label+' to slurm-master?')) return;
+    if(!confirm('Save '+cfg.label+' to slurm-master?')) return;
     savBtn.disabled = true; savBtn.textContent = 'Saving…';
     st.textContent = ''; st.style.color = 'var(--muted)';
-    const url  = _editorMode==='slurm' ? BASE+'/api/sync/file/slurm.conf' : BASE+'/api/sync/hosts-block';
-    const body = _editorMode==='slurm' ? {content: ta.value} : {block: ta.value};
+    const body = cfg.kind==='content' ? {content: ta.value} : {block: ta.value};
     try {
-      const data = await fetch(url, {
+      const data = await fetch(cfg.url, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(body)
       }).then(r=>r.json());
@@ -1792,6 +2007,7 @@
       syncFiles=data.files;
       syncInfra=data.infra||[];
       buildSyncHeaders(data.files);
+      buildSyncMasterRow(data.nodes, data.files);
       buildSyncRows(data.nodes, data.files);
       buildSyncInfraHeaders(data.files);
       buildSyncInfraRows(syncInfra, data.files);
@@ -1890,7 +2106,7 @@
 
   const ACCT_COLORS={
     'ece-admin':      'background:#fef2f2;color:#991b1b;border:1px solid #fecaca',
-    'research_group_a':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
+    'research_groupC':'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0',
     'general_users':  'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
     'course_students':'background:#fffbeb;color:#92400e;border:1px solid #fde68a',
   };
@@ -1917,18 +2133,17 @@
 
   function selectAcct(acc){
     selectedAcct = selectedAcct===acc ? '' : acc;
-    // Re-render sidebar highlighting
-    document.querySelectorAll('[id^="sb-"]').forEach(el=>{
+    // Re-render sidebar highlighting — scope to acct-sidebar only
+    document.querySelectorAll('#acct-sidebar [id^="sb-"]').forEach(el=>{
       const a=el.id.replace('sb-','');
       el.style.border=`1px solid ${selectedAcct===a?'var(--accent)':'transparent'}`;
       el.style.background=selectedAcct===a?'var(--accent-lt)':'transparent';
-      el.querySelector('span').style.color=selectedAcct===a?'var(--accent)':'var(--text)';
+      const span=el.querySelector('span');
+      if(span) span.style.color=selectedAcct===a?'var(--accent)':'var(--text)';
     });
     // Filter account filter dropdown
     document.getElementById('acct-filter').value=selectedAcct;
     filterUsers();
-    // Switch to users tab
-    switchAcctTab('users', document.getElementById('atab-users'));
   }
 
   function filterUsers(){
@@ -2018,8 +2233,8 @@
       'admin':        '#534AB7',
       'a6000_full':   '#185FA5',
       'a6000_restricted': '#185FA5',
-      'research_4jobs':  '#0F6E56',
-      'permuter_4jobs':   '#0F6E56',
+      'researchA_4jobs':  '#0F6E56',
+      'researchB_4jobs':   '#0F6E56',
       'course_interactive': '#BA7517',
       'normal':       '#888780',
     };
@@ -2027,8 +2242,8 @@
       'admin':        'rgba(83,74,183,0.1)',
       'a6000_full':   'rgba(24,95,165,0.12)',
       'a6000_restricted': 'rgba(24,95,165,0.08)',
-      'research_4jobs':  'rgba(15,110,86,0.15)',
-      'permuter_4jobs':   'rgba(15,110,86,0.15)',
+      'researchA_4jobs':  'rgba(15,110,86,0.15)',
+      'researchB_4jobs':   'rgba(15,110,86,0.15)',
       'course_interactive': 'rgba(186,119,23,0.1)',
       'normal':       'rgba(136,135,128,0.07)',
     };
@@ -2101,7 +2316,7 @@
     html += `</tr></thead><tbody>`;
 
     partitions.forEach(p => {
-      const isOwner = p.name.includes('research') || p.name.includes('permuter');
+      const isOwner = p.name.includes('researchA') || p.name.includes('researchB');
       const borderLeft = isOwner ? '3px solid #1D9E75' : '0.5px solid var(--border)';
       html += `<tr>
         <td style="border:0.5px solid var(--border);border-left:${borderLeft};background:var(--surface);padding:10px 12px">
@@ -2502,6 +2717,11 @@
     openModal('create-group-modal');
   }
 
+  function openCreateGroupFor(parent){
+    openCreateGroup();
+    document.getElementById('cg-parent').value=parent;
+  }
+
   async function removeChildGroup(parentGroup, childGroup){
     if(!confirm(`Remove subgroup "${childGroup}" from "${parentGroup}"?`)) return;
     const r = await fetch(BASE+'/api/ad/group/remove-child', {
@@ -2509,7 +2729,7 @@
       body: JSON.stringify({parent_group: parentGroup, child_group: childGroup})
     });
     const d = await r.json();
-    if(d.ok){ loadADGroups(); }
+    if(d.ok){ loadADManagement(); }
     else { alert('Error: ' + d.error); }
   }
 
@@ -2529,13 +2749,8 @@
     });
     const d = await r.json();
     document.getElementById('link-group-modal').style.display='none';
-    if(d.ok){ loadADGroups(); }
+    if(d.ok){ loadADManagement(); }
     else { alert('Error: '+d.error); }
-  }
-
-  function openCreateGroupFor(parent){
-    openCreateGroup();
-    document.getElementById('cg-parent').value=parent;
   }
 
   async function submitCreateGroup(){
@@ -2748,6 +2963,7 @@
           <td style="padding:6px 14px"><span class="qos-badge">${p.default_qos||'—'}</span></td>
           <td style="padding:6px 14px">${aqDisplay}</td>
           <td style="padding:6px 14px;font-size:12px;color:var(--muted)">${p.allow_groups||'ALL'}</td>
+          <td style="padding:6px 14px;font-size:12px;color:var(--muted)">${p.allow_accounts||'ALL'}</td>
           <td style="padding:6px 14px;font-size:12px;color:var(--danger)">${p.deny_accounts||'—'}</td>
           <td style="padding:6px 14px">
             <button class="node-menu-btn" onclick="openPartitionQos(${JSON.stringify(p).replace(/"/g,'&quot;')},${JSON.stringify(allQos).replace(/"/g,'&quot;')})" style="font-size:12px;padding:3px 10px">Edit</button>
@@ -2755,7 +2971,7 @@
         </tr>`;
       }).join('');
     }catch(e){
-      document.getElementById('partition-qos-tbody').innerHTML=`<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;
+      document.getElementById('partition-qos-tbody').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger)">⚠️ ${e.message}</td></tr>`;
     }
   }
 
@@ -2765,6 +2981,8 @@
     document.getElementById('pqos-result').textContent = '';
     document.getElementById('pqos-push-prompt').style.display = 'none';
     document.getElementById('pqos-deny-accounts').value = p.deny_accounts || '';
+    document.getElementById('pqos-allow-accounts').value = (p.allow_accounts && p.allow_accounts !== 'ALL') ? p.allow_accounts : '';
+    document.getElementById('pqos-allow-groups').value = (p.allow_groups && p.allow_groups !== 'ALL') ? p.allow_groups : '';
 
     // Populate accounts datalist — lazy load if needed
     const _populateDenyAccountsList = (accounts) => {
@@ -2781,16 +2999,19 @@
     }
 
     // Autocomplete last comma-separated token
-    const inp = document.getElementById('pqos-deny-accounts');
-    inp.oninput = function(){
-      const parts = this.value.split(',');
-      const last = parts[parts.length-1].trim();
-      const dl = document.getElementById('pqos-accounts-list');
-      dl.innerHTML = accountsList
-        .filter(a => a.startsWith(last))
-        .map(a => `<option value="${parts.slice(0,-1).concat(a).join(',')}">`)
-        .join('');
+    const _wireAutocomplete = (inp) => {
+      inp.oninput = function(){
+        const parts = this.value.split(',');
+        const last = parts[parts.length-1].trim();
+        const dl = document.getElementById('pqos-accounts-list');
+        dl.innerHTML = accountsList
+          .filter(a => a.startsWith(last))
+          .map(a => `<option value="${parts.slice(0,-1).concat(a).join(',')}">`)
+          .join('');
+      };
     };
+    _wireAutocomplete(document.getElementById('pqos-deny-accounts'));
+    _wireAutocomplete(document.getElementById('pqos-allow-accounts'));
     const current = p.allow_qos==='ALL' ? [] : (p.allow_qos||'').split(',').filter(Boolean);
     // Build checkboxes
     document.getElementById('pqos-checkboxes').innerHTML = allQos.map(q=>`
@@ -2811,11 +3032,13 @@
     const checked = [...document.querySelectorAll('#pqos-checkboxes input:checked')].map(cb=>cb.value);
     const allow_qos = checked.length ? checked.join(',') : 'ALL';
     const default_qos = document.getElementById('pqos-default-qos').value;
+    const allow_accounts = document.getElementById('pqos-allow-accounts').value.trim();
+    const allow_groups = document.getElementById('pqos-allow-groups').value.trim();
     const deny_accounts = document.getElementById('pqos-deny-accounts').value.trim();
     try{
       const res = await fetch(BASE+'/api/slurm/partition/qos', {method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({partition:_partitionCurrent, allow_qos, default_qos, deny_accounts, write_conf:true})
+        body:JSON.stringify({partition:_partitionCurrent, allow_qos, default_qos, allow_groups, allow_accounts, deny_accounts, write_conf:true})
       }).then(r=>r.json());
       res_el.textContent = res.ok ? '✓ '+res.msg : '⚠ '+res.msg;
       res_el.style.color = res.ok ? 'var(--ok)' : 'var(--danger)';
@@ -3112,19 +3335,5 @@
 })();
 </script>
 
-<div id="link-group-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;min-width:340px;box-shadow:var(--shadow)">
-    <div style="font-size:16px;font-weight:600;margin-bottom:20px">Link Existing Group</div>
-    <input type="hidden" id="lg-parent">
-    <div style="display:grid;gap:12px">
-      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Existing group name to link</label>
-        <input id="lg-child" type="text" placeholder="e.g. hpc_researchers" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none"></div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
-      <button onclick="document.getElementById('link-group-modal').style.display='none'" class="sync-btn secondary">Cancel</button>
-      <button onclick="submitLinkGroup()" class="sync-btn">Link Group</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
