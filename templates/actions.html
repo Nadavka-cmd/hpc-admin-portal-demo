@@ -278,7 +278,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label class="form-label">Hostname *</label>
-          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. hpc-node12" autocomplete="off">
+          <input class="form-input" id="ah-hostname" type="text" placeholder="e.g. node12" autocomplete="off">
         </div>
         <div>
           <label class="form-label">Description (optional)</label>
@@ -286,7 +286,7 @@
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">Variables (optional, YAML or JSON)<button type="button" onclick="fillVarsTemplate()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11px;cursor:pointer;color:var(--text);font-family:inherit">📋 Use Template</button></label>
-          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 132.72.x.x"></textarea>
+          <textarea class="form-input" id="ah-vars" rows="2" placeholder="ansible_host: 10.0.0.x"></textarea>
         </div>
         <div style="grid-column:1/-1">
           <label class="form-label">Add to groups</label>
@@ -393,11 +393,11 @@
             <div id="ou-quota-fields">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage2)</label>
                   <div id="ou-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage3)</label>
                   <div id="ou-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
               </div>
@@ -478,7 +478,7 @@
                 </div>
                 <div id="og-new-account-row" style="display:none;margin-top:8px">
                   <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">New Account Name</label>
-                  <input type="text" id="og-new-account-name" placeholder="e.g. research_arnon"
+                  <input type="text" id="og-new-account-name" placeholder="e.g. research_groupA"
                     style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
                 </div>
               </div>
@@ -505,12 +505,47 @@
             <div id="og-quota-fields" style="display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (truenas2)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Home quota (storage2)</label>
                   <div id="og-home-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (truenas3)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Projects quota (storage3)</label>
                   <div id="og-proj-quota" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+                <input type="checkbox" id="og-share-enable" onchange="document.getElementById('og-share-fields').style.display=this.checked?'block':'none'" style="accent-color:var(--accent)">
+                <span style="font-size:13px;font-weight:600">Create a shared folder for this group</span>
+              </label>
+              <div id="og-share-fields" style="display:none;margin-top:10px">
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Shared folder path (/storage/…)</label>
+                  <input id="og-share-path" placeholder="/storage/courses/ml_intro_2026" autocomplete="off" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">Storage host is resolved automatically; the folder is created on the box (mode 775: group rw, others r), mirroring ml_intro_2026.</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+                  <input type="checkbox" id="og-share-managed" onchange="document.getElementById('og-mgr-fields').style.display=this.checked?'block':'none';document.getElementById('og-share-acl-note').textContent=this.checked?'Folder group-owned by the manager group (read-write); everyone else, including students, gets read.':'Folder group-owned by this group (read-write); everyone else gets read.'" style="accent-color:var(--accent)">
+                  <span style="font-size:13px">Managed by a separate group (e.g. course staff)</span>
+                </label>
+                <div id="og-share-acl-note" style="font-size:12px;color:var(--muted);margin-bottom:12px">Folder group-owned by this group (read-write); everyone else gets read.</div>
+                <div id="og-mgr-fields" style="display:none">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
+                    <div>
+                      <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Manager group (rw)</label>
+                      <input id="og-mgr-name" placeholder="hpc_ml_intro_2026_staff" autocomplete="off" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none">
+                    </div>
+                    <div>
+                      <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Nest manager group under</label>
+                      <select id="og-mgr-parent" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none"></select>
+                    </div>
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Manager group members — one per line (optional)</label>
+                    <textarea id="og-mgr-members" rows="3" placeholder="instructor1&#10;ta1" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;max-width:400px;resize:vertical"></textarea>
+                  </div>
                 </div>
               </div>
             </div>
@@ -522,6 +557,22 @@
             <div style="margin-bottom:6px;font-size:13px;color:var(--muted)">Optionally apply a skel profile to each member's home directory. Only applied if the home directory already exists.</div>
             <div id="og-skel-options" style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
               <div class="ob-check-item"><input type="radio" id="og-skel-none" name="og-skel" value="" checked><label for="og-skel-none">None</label></div>
+            </div>
+            <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+              <button class="sync-btn secondary" id="og-newskel-toggle" onclick="var f=document.getElementById('og-newskel-form');var v=f.style.display!=='none';f.style.display=v?'none':'block';this.textContent=v?'+ New profile':'Cancel new profile'">+ New profile</button>
+              <div id="og-newskel-form" style="display:none;margin-top:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px">
+                <div style="margin-bottom:10px">
+                  <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Profile name</label>
+                  <input id="og-newskel-name" placeholder="ml_intro_2026" autocomplete="off" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;max-width:340px">
+                </div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Symlinks — source (absolute) → name in home</label>
+                <div id="og-newskel-links" style="display:flex;flex-direction:column;gap:8px"></div>
+                <button class="sync-btn secondary" onclick="ogAddSkelLink()" style="margin-top:8px">+ Add link</button>
+                <div style="margin-top:14px">
+                  <button class="sync-btn" id="og-newskel-save-btn" onclick="ogCreateSkel()" style="background:var(--accent);border-color:var(--accent);color:#fff">Save &amp; select</button>
+                  <span id="og-newskel-status" style="font-size:12px;margin-left:10px"></span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -727,7 +778,7 @@
         html+=`<div class="tmpl-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden">
           <div class="tmpl-header" style="padding:14px 20px;border-bottom:1px solid var(--border);background:${meta.color};display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div><div style="font-size:14px;font-weight:700">${meta.label}</div><div style="font-size:12px;color:var(--muted)">${meta.sub}</div></div>
-            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. hpc-node12)" style="width:220px"></div>`:''}
+            ${isSteps?`<div style="margin-left:auto"><input class="limit-input" id="${sharedLimitId}" type="text" placeholder="hostname (e.g. node12)" style="width:220px"></div>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
             ${items.map((t,i)=>`<div style="padding:16px 20px;${i<items.length-1?'border-right:1px solid var(--border)':''}">
@@ -1073,6 +1124,11 @@
         <div class="ob-check-item"><input type="radio" id="${prefix}-skel-${p}" name="${prefix}-skel" value="${p}" onchange="obSkelChanged('${prefix}')">
         <label for="${prefix}-skel-${p}">${p}</label></div>`).join('');
     });
+
+    const ogMgrParent = document.getElementById('og-mgr-parent');
+    if (ogMgrParent) ogMgrParent.innerHTML = obMeta.hpc_parent_groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+    if (document.getElementById('og-newskel-links') && !document.querySelector('#og-newskel-links .ogsk-row')) ogAddSkelLink();
+
   }
 
   function obSkelChanged(prefix) {
@@ -1382,6 +1438,10 @@
         ['Extra QoS', [...document.querySelectorAll('[name=og-xq]:checked')].map(c=>c.value).join(', ')||'(none)'],
         ['Per-User Quotas', document.getElementById('og-set-quota').checked ? `home=${document.querySelector('[name=og-home]:checked')?.value||'none'}, projects=${document.querySelector('[name=og-proj]:checked')?.value||'none'}` : '(not setting)'],
         ['Skel Profile', document.querySelector('[name=og-skel]:checked')?.value || '(none)'],
+        ['Shared Folder', !document.getElementById('og-share-enable').checked ? '(none)'
+          : (document.getElementById('og-share-managed').checked
+              ? `${document.getElementById('og-share-path').value.trim()} — group ${document.getElementById('og-mgr-name').value.trim()} (rw), others r`
+              : `${document.getElementById('og-share-path').value.trim()} — group ${document.getElementById('og-group-name').value.trim()} (rw), others r`)],
       ];
     } else if (prefix==='fu') {
       rows = [
@@ -1455,11 +1515,18 @@
 
   async function runOnboardGroup() {
     const btn = document.getElementById('og-run-btn');
-    obSetRunning(btn,'Processing…');
+    const groupName = document.getElementById('og-group-name').value.trim();
     const members = document.getElementById('og-members').value.trim().split('\n').map(u=>u.trim()).filter(Boolean);
+    const shareOn = document.getElementById('og-share-enable').checked;
+    const managed = document.getElementById('og-share-managed').checked;
+    if (shareOn) {
+      if (!document.getElementById('og-share-path').value.trim()) { alert('Shared folder needs a /storage path.'); return; }
+      if (managed && !document.getElementById('og-mgr-name').value.trim()) { alert('Enter the manager group name (or untick "managed by a separate group").'); return; }
+    }
+    obSetRunning(btn,'Processing…');
     try {
       const r = await fetch(BASE+'/api/onboarding/onboard-group', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        group_name: document.getElementById('og-group-name').value.trim(),
+        group_name: groupName,
         parent_group: document.getElementById('og-parent-group').value,
         members: members,
         slurm_account: document.getElementById('og-slurm-account').value,
@@ -1472,7 +1539,24 @@
         projects_quota: document.querySelector('[name=og-proj]:checked')?.value||'none',
         skel_profile: document.querySelector('[name=og-skel]:checked')?.value||'',
       })});
-      obShowResults('og', await r.json(), document.getElementById('og-group-name').value.trim(), 'onboarded', 6);
+      let steps = (await r.json()).steps || [];
+
+      if (shareOn) {
+        const payload = {
+          share_path: document.getElementById('og-share-path').value.trim(),
+          owner_group: managed ? document.getElementById('og-mgr-name').value.trim() : groupName,
+          create_owner_group: managed,
+          owner_parent: managed ? document.getElementById('og-mgr-parent').value : '',
+          owner_members: managed ? document.getElementById('og-mgr-members').value.trim().split('\n').map(s=>s.trim()).filter(Boolean) : [],
+        };
+        const sr = await fetch(BASE+'/api/onboarding/create-shared-folder', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const sd = await sr.json().catch(()=>({steps:[]}));
+        if (sr.status === 401) steps.push({label:'[folder] AD', ok:false, msg:'Not authenticated to AD — shared folder skipped'});
+        else steps = steps.concat((sd.steps||[]).map(s=>({...s, label:'[folder] '+s.label})));
+      }
+
+      const combined = { ok: steps.length>0 && steps.every(s=>s.ok), steps };
+      obShowResults('og', combined, groupName, 'onboarded', 6);
     } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Run Group Onboarding');}
   }
 
@@ -1500,6 +1584,56 @@
       })});
       obShowResults('fg', await r.json(), document.getElementById('fg-ad-group').value, 'offboarded', 2);
     } catch(e){alert('Request failed: '+e.message);} finally{obResetBtn(btn,'Confirm Group Offboarding');}
+  }
+
+  // ── inline skel creator (onboard-group Skel step) ──
+  function ogAddSkelLink() {
+    const row = document.createElement('div');
+    row.className = 'ogsk-row';
+    row.style.cssText = 'display:flex;gap:8px;align-items:center';
+    row.innerHTML = `
+      <input class="ogsk-src" placeholder="/storage/courses/ml_intro_2026/datasets" autocomplete="off" style="flex:2;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none">
+      <span style="color:var(--muted)">→</span>
+      <input class="ogsk-dst" placeholder="datasets" autocomplete="off" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none">
+      <button onclick="this.closest('.ogsk-row').remove()" title="Remove" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;padding:5px 9px;font-size:13px">✕</button>`;
+    document.getElementById('og-newskel-links').appendChild(row);
+  }
+
+  async function obRefreshSkel() {
+    try {
+      const r = await fetch(BASE+'/api/onboarding/meta'); obMeta = await r.json();
+      const skelProfiles = obMeta.skel_profiles || [];
+      ['ou','og'].forEach(prefix => {
+        const el = document.getElementById(`${prefix}-skel-options`); if (!el) return;
+        const cur = document.querySelector(`[name=${prefix}-skel]:checked`)?.value || '';
+        const none = `<div class="ob-check-item"><input type="radio" id="${prefix}-skel-none" name="${prefix}-skel" value="" ${cur===''?'checked':''} onchange="obSkelChanged('${prefix}')"><label for="${prefix}-skel-none">None</label></div>`;
+        el.innerHTML = none + skelProfiles.map(p=>`
+          <div class="ob-check-item"><input type="radio" id="${prefix}-skel-${p}" name="${prefix}-skel" value="${p}" ${cur===p?'checked':''} onchange="obSkelChanged('${prefix}')">
+          <label for="${prefix}-skel-${p}">${p}</label></div>`).join('');
+      });
+    } catch(e){}
+  }
+
+  async function ogCreateSkel() {
+    const btn = document.getElementById('og-newskel-save-btn');
+    const status = document.getElementById('og-newskel-status');
+    const profile = document.getElementById('og-newskel-name').value.trim();
+    if (!profile) { status.style.color='var(--danger)'; status.textContent='Enter a name.'; return; }
+    const symlinks = [...document.querySelectorAll('#og-newskel-links .ogsk-row')]
+      .map(r => ({src: r.querySelector('.ogsk-src').value.trim(), dst: r.querySelector('.ogsk-dst').value.trim()}))
+      .filter(l => l.src && l.dst);
+    if (!symlinks.length) { status.style.color='var(--danger)'; status.textContent='Add at least one link.'; return; }
+    btn.disabled = true; status.style.color='var(--muted)'; status.textContent='Saving…';
+    try {
+      const r = await fetch(BASE+'/api/onboarding/create-skel', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile, symlinks})});
+      const d = await r.json().catch(()=>({}));
+      if (!r.ok || !d.ok) { status.style.color='var(--danger)'; status.textContent = '✗ ' + ((d.steps||[]).filter(s=>!s.ok).map(s=>s.msg)[0] || d.detail || 'failed'); btn.disabled=false; return; }
+      await obRefreshSkel();
+      const radio = document.getElementById('og-skel-'+profile);
+      if (radio) radio.checked = true;
+      status.style.color='var(--ok)'; status.textContent='✓ saved & selected';
+    } catch(e){ status.style.color='var(--danger)'; status.textContent='Error: '+e.message; }
+    finally { btn.disabled=false; }
   }
 
 </script>
