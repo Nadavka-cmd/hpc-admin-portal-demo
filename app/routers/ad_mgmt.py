@@ -12,17 +12,17 @@ def _load_ldap_cfg():
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
     l = cfg.get("ldap", {})
-    return l.get("uri","ldap://localhost"), l.get("base",""), l.get("hpc_ou",""), l.get("domain","")
+    return l.get("uri","ldap://ldap.internal.local"), l.get("base",""), l.get("hpc_ou",""), l.get("domain","")
 
 LDAP_URI, LDAP_BASE, HPC_OU, AD_DOMAIN = _load_ldap_cfg()
 
 HPC_PARENT_GROUPS = [
-    "hpc_eeadmins",
+    "hpc_admins",
     "hpc_researchers",
     "hpc_faculty",
-    "hpc_course_students",
-    "hpc_group_a",
-    "hpc_permuter",
+    "hpc_students",
+    "hpc_researchC",
+    "hpc_researchB",
     "hpc_matlab_users",
 ]
 
