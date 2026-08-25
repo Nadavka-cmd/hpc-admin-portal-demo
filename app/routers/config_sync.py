@@ -3,6 +3,7 @@ import subprocess
 import hashlib
 import re
 import os
+from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, HTTPException
@@ -14,7 +15,7 @@ def _get_ssh_user():
     import yaml
     from pathlib import Path
     cfg = yaml.safe_load(open(Path(__file__).resolve().parent.parent.parent / "config.yaml"))
-    return cfg.get("ssh", {}).get("user", "svcaccount")
+    return cfg.get("ssh",{}).get("user","svcaccount")
 
 SSH_USER = _get_ssh_user()
 MASTER   = "slurm-master"
@@ -24,14 +25,15 @@ SCONTROL = "/opt/slurm/bin/scontrol"
 # Each entry: (local_path, remote_path, short, description, category)
 # category groups files in the Config Sync table UI.
 TRACKED_FILES = [
-    ("/etc/slurm/slurm.conf",     "/etc/slurm/slurm.conf",     "slurm.conf",  "Slurm main config",        "Slurm Config"),
-    ("/etc/slurm/prolog.sh",      "/etc/slurm/prolog.sh",      "prolog",      "Job prolog script",        "Slurm Scripts"),
-    ("/etc/slurm/epilog.sh",      "/etc/slurm/epilog.sh",      "epilog",      "Job epilog script",        "Slurm Scripts"),
-    ("/etc/sssd/sssd.conf",       "/etc/sssd/sssd.conf",        "sssd.conf",   "SSSD / AD auth",           "Auth"),
-    ("/etc/hosts",                "/etc/hosts",                 "hosts",       "Hosts file",               "System"),
-    ("/etc/security/limits.conf", "/etc/security/limits.conf",  "limits",      "PAM limits",               "System"),
-    ("/etc/sysctl.conf",          "/etc/sysctl.conf",           "sysctl",      "Kernel params",            "System"),
-    ("/etc/environment",          "/etc/environment",           "environ",     "Env / proxy vars",         "System"),
+    ("/etc/slurm/slurm.conf",     "/etc/slurm/slurm.conf",     "slurm.conf",  "Slurm main config",          "Slurm Config"),
+    ("/etc/slurm/gpu_policy.json", "/etc/slurm/gpu_policy.json", "gpu_policy",  "GPU resource policy (JSON)", "Slurm Config"),
+    ("/etc/slurm/unkillable.sh",   "/etc/slurm/unkillable.sh",   "unkillable",  "Unkillable-step program",    "Slurm Scripts"),
+    ("/etc/slurm/epilog.sh",       "/etc/slurm/epilog.sh",       "epilog",      "Job epilog (cgroup reaper)", "Slurm Scripts"),
+    ("/etc/sssd/sssd.conf",       "/etc/sssd/sssd.conf",        "sssd.conf",   "SSSD / AD auth",             "Auth"),
+    ("/etc/hosts",                "/etc/hosts",                 "hosts",       "Hosts file",                 "System"),
+    ("/etc/security/limits.conf", "/etc/security/limits.conf",  "limits",      "PAM limits",                 "System"),
+    ("/etc/sysctl.conf",          "/etc/sysctl.conf",           "sysctl",      "Kernel params",              "System"),
+    ("/etc/environment",          "/etc/environment",           "environ",     "Env / proxy vars",           "System"),
 ]
 
 HOSTS_BEGIN = "# BEGIN ANSIBLE MANAGED CLUSTER HOSTS"
@@ -40,9 +42,27 @@ HOSTS_END   = "# END ANSIBLE MANAGED CLUSTER HOSTS"
 # Infra nodes that are not Slurm compute nodes but still need some files synced.
 # Maps hostname -> list of file shorts to check (others will be SKIP).
 INFRA_NODES = {
-    "ood-node":     ["slurm.conf", "sssd.conf", "hosts", "limits", "sysctl", "environ"],
-    "monitor-node": ["hosts"],
+    "ood-node":     ["slurm.conf", "sssd.conf", "hosts", "limits", "sysctl", "environ", "gpu_policy"],
+    "login-node1":  ["slurm.conf", "sssd.conf", "hosts", "limits", "sysctl", "environ", "gpu_policy"],
+    "login-node2":  ["slurm.conf", "sssd.conf", "hosts", "limits", "sysctl", "environ", "gpu_policy"],
+    "monitor-node1":["hosts"],
 }
+
+# Files that belong ONLY on infra nodes (per INFRA_NODES) and must never be
+# checked or pushed to compute nodes. Compute nodes get SKIP for these.
+INFRA_ONLY_FILES = {"gpu_policy"}
+
+# Allowed file shorts for a regular compute node = everything except infra-only.
+COMPUTE_ALLOWED = [f[2] for f in TRACKED_FILES if f[2] not in INFRA_ONLY_FILES]
+
+
+def _file_allowed_on_node(short: str, node: str) -> bool:
+    """True if a tracked file short may be checked/pushed to this node.
+    Infra nodes use their explicit INFRA_NODES list; everything else is a
+    compute node and may receive anything except infra-only files."""
+    if node in INFRA_NODES:
+        return short in INFRA_NODES[node]
+    return short not in INFRA_ONLY_FILES
 
 
 def _ssh(node: str, cmd: str, timeout: int = 15) -> tuple[int, str, str]:
@@ -82,13 +102,14 @@ def _scp(local: str, node: str, remote: str) -> tuple[bool, str]:
 
     FILE_META = {
         "/etc/slurm/slurm.conf":     ("slurm:slurm", "644"),
-        "/etc/slurm/prolog.sh":      ("root:root",   "755"),
-        "/etc/slurm/epilog.sh":      ("root:root",   "755"),
         "/etc/sssd/sssd.conf":       ("root:root",   "600"),
         "/etc/hosts":                ("root:root",   "644"),
         "/etc/security/limits.conf": ("root:root",   "644"),
         "/etc/sysctl.conf":          ("root:root",   "644"),
         "/etc/environment":          ("root:root",   "644"),
+        "/etc/slurm/gpu_policy.json": ("slurm:slurm", "644"),
+        "/etc/slurm/unkillable.sh":   ("root:root",   "755"),
+        "/etc/slurm/epilog.sh":       ("root:root",   "755"),
     }
     owner, mode = FILE_META.get(remote, ("root:root", "644"))
     cmd = (f"sudo mv {tmp} {remote} "
@@ -269,7 +290,7 @@ async def check_all():
     tasks = {}
     with ThreadPoolExecutor(max_workers=16) as ex:
         for n in all_compute:
-            tasks[ex.submit(_check_node_all_files, n, None)] = ("compute", n)
+            tasks[ex.submit(_check_node_all_files, n, COMPUTE_ALLOWED)] = ("compute", n)
         for n, allowed in INFRA_NODES.items():
             tasks[ex.submit(_check_node_all_files, n, allowed)] = ("infra", n)
         for f in as_completed(tasks):
@@ -342,6 +363,9 @@ async def push_file(req: SyncRequest):
     if not entry:
         raise HTTPException(status_code=404, detail="File not tracked")
     local_path, remote_path, short, _, _ = entry
+    if not _file_allowed_on_node(short, req.node):
+        raise HTTPException(status_code=400,
+            detail=f"{short} is not applicable to {req.node}")
     ok, err = _scp(local_path, req.node, remote_path)
 
     # Post-push actions
@@ -371,6 +395,10 @@ async def push_all_mismatches(req: SyncAllRequest):
         entry = next((x for x in TRACKED_FILES if x[2] == short), None)
         if not entry:
             results.append({"ok": False, "node": node, "file": short, "error": "Unknown file"})
+            continue
+        if not _file_allowed_on_node(short, node):
+            results.append({"ok": False, "node": node, "file": short,
+                            "error": "not applicable to node"})
             continue
         local_path, remote_path, _, _, _ = entry
         ok, err = _scp(local_path, node, remote_path)
@@ -434,7 +462,19 @@ async def save_hosts_block(req: HostsBlockRequest):
 # ── GENERIC FILE EDITOR ───────────────────────────────────────────────────
 
 EDITABLE_FILES = {
-    "slurm.conf": "/etc/slurm/slurm.conf",
+    "slurm.conf":     "/etc/slurm/slurm.conf",
+    "gpu_policy":     "/etc/slurm/gpu_policy.json",
+    "gpu_policy_lua": "/etc/slurm/gpu_policy.lua",
+}
+
+# Paths eligible for in-place, timestamped backup from the file editor.
+# Includes "hosts" (edited as a block via /hosts-block) since the editor
+# UI treats it as a loadable/backupable file too.
+BACKUP_PATHS = {
+    "slurm.conf":     "/etc/slurm/slurm.conf",
+    "gpu_policy":     "/etc/slurm/gpu_policy.json",
+    "gpu_policy_lua": "/etc/slurm/gpu_policy.lua",
+    "hosts":          "/etc/hosts",
 }
 
 class FileContentRequest(BaseModel):
@@ -462,3 +502,37 @@ async def save_file(file_key: str, req: FileContentRequest):
     if r.returncode != 0:
         raise HTTPException(status_code=500, detail=r.stderr.strip() or "Write failed")
     return {"ok": True, "msg": f"Saved {path} on slurm-master"}
+
+
+@router.post("/backup/{file_key}")
+async def backup_file(file_key: str):
+    """Create a timestamped copy of the file in the same location on slurm-master.
+    e.g. /etc/slurm/slurm.conf -> /etc/slurm/slurm.conf.bak.20260803_142230"""
+    if file_key not in BACKUP_PATHS:
+        raise HTTPException(status_code=404, detail="File not backup-eligible")
+    path = BACKUP_PATHS[file_key]
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = f"{path}.bak.{ts}"
+    r = subprocess.run(
+        ["sudo", "cp", "-p", path, backup_path],
+        capture_output=True, text=True, timeout=10
+    )
+    if r.returncode != 0:
+        raise HTTPException(status_code=500, detail=r.stderr.strip() or "Backup failed")
+    return {"ok": True, "msg": f"Backed up to {backup_path}", "backup_path": backup_path}
+
+
+GPU_POLICY_LUA_SCRIPT = "/etc/slurm/gpu_policy_to_json.lua"
+
+@router.post("/regenerate-gpu-policy")
+async def regenerate_gpu_policy():
+    """Run gpu_policy_to_json.lua on slurm-master to regenerate gpu_policy.json
+    from the current gpu_policy.lua source."""
+    r = subprocess.run(
+        ["sudo", "lua", GPU_POLICY_LUA_SCRIPT],
+        capture_output=True, text=True, timeout=20
+    )
+    if r.returncode != 0:
+        raise HTTPException(status_code=500, detail=r.stderr.strip() or "lua script failed")
+    return {"ok": True, "msg": "Regenerated gpu_policy.json from gpu_policy.lua",
+            "stdout": r.stdout.strip(), "stderr": r.stderr.strip()}
